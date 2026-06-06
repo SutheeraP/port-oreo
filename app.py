@@ -103,6 +103,7 @@ left, right = st.columns([3, 2], gap="large")
 
 with left:
     st.subheader("Holdings")
+    st.markdown("<style>.stDataFrame * { font-size: 40px !important; }</style>", unsafe_allow_html=True)
 
     display_cols = ["Ticker", "Sector", "Shares", "Avg Cost", "Price", "Value", "P&L $", "P&L %"]
 
@@ -142,9 +143,9 @@ with right:
     ))
     fig_pie.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#8b949e", size=12),
+        font=dict(color="#8b949e", size=14),
         height=280, margin=dict(t=0, b=0, l=0, r=0),
-        legend=dict(orientation="h", x=0, y=-0.05, font=dict(size=11)),
+        legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9",size=20)),
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
@@ -164,16 +165,16 @@ with right:
         marker_color=[SECTOR_COLORS.get(n, "#8b949e") for n in s_names],
         text=[f"{p:.1f}%" for p in s_pcts],
         textposition="outside",
-        textfont=dict(color="#8b949e", size=11),
+        textfont=dict(color="#8b949e", size=13),
     ))
     fig_sector.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#8b949e", size=12),
+        font=dict(color="#8b949e", size=14),
         height=max(140, len(s_names) * 45),
         margin=dict(t=0, b=0, l=0, r=50),
         showlegend=False,
         xaxis=dict(visible=False, range=[0, max(s_pcts) * 1.35]),
-        yaxis=dict(tickfont=dict(color="#c9d1d9", size=12), gridcolor="rgba(0,0,0,0)"),
+        yaxis=dict(tickfont=dict(color="#c9d1d9", size=14), gridcolor="rgba(0,0,0,0)"),
         bargap=0.45,
     )
     st.plotly_chart(fig_sector, use_container_width=True)
