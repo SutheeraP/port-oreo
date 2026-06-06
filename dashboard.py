@@ -131,7 +131,7 @@ with right:
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#8b949e", size=14),
         height=280, margin=dict(t=0, b=0, l=0, r=0),
-        legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9",size=20)),
+        legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9",size=16)),
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
@@ -158,15 +158,15 @@ with right:
     fig_sector.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#8b949e", size=14),
-        height=280, margin=dict(t=0, b=0, l=0, r=0),
-        legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9", size=20)),
+        height=200, margin=dict(t=0, b=0, l=0, r=0),
+        legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9", size=16)),
     )
     st.plotly_chart(fig_sector, use_container_width=True)
 
 
 with left:
     st.subheader("Holdings")
-    st.markdown("<style>.stDataFrame * { font-size: 32px !important; }</style>", unsafe_allow_html=True)
+    st.markdown("<style>.stDataFrame * { font-size: 28px !important; }</style>", unsafe_allow_html=True)
 
     display_cols = ["Ticker", "Sector", "Shares", "Avg Cost", "Price", "Value", "P&L $", "P&L %"]
 
