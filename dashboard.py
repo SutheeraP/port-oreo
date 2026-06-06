@@ -14,8 +14,6 @@ st.set_page_config(page_title="Portfolio", page_icon="📈", layout="wide")
 PORTFOLIO = Path("portfolio.json")
 PRICES    = Path("prices.json")
 
-
-
 TICKER_PALETTE = ["#00d4a0", "#ff6b35", "#7c3aed", "#3b82f6", "#f59e0b", "#ec4899", "#06b6d4", "#84cc16"]
 
 
@@ -34,7 +32,7 @@ def tx_split_factor(tx_date: str, history: list) -> float:
     return factor
 
 
-def build_holdings(portfolio, prices, split_history):
+def build_holdings(portfolio, prices, split_history, sectors):
     rows = {}
     for tx in portfolio:
         t, shares = tx["ticker"], float(tx["shares"])
@@ -54,7 +52,7 @@ def build_holdings(portfolio, prices, split_history):
         pct = pnl / r["cost"] * 100 if pnl is not None and r["cost"] else None
         records.append({
             "Ticker":   t,
-            "Sector":   SECTORS.get(t, "Other"),
+            "Sector":   sectors.get(t, "Other"),
             "Shares":   round(adj, 4),
             "Avg Cost": round(avg, 2),
             "Price":    cp,
@@ -69,8 +67,9 @@ def build_holdings(portfolio, prices, split_history):
 portfolio_data, prices_raw = load_data()
 prices        = prices_raw["prices"]
 split_history = prices_raw.get("split_history", {})
+sectors       = prices_raw.get("sectors", {})
 fetched_at    = prices_raw.get("fetched_at", "")
-df            = build_holdings(portfolio_data, prices, split_history)
+df            = build_holdings(portfolio_data, prices, split_history, sectors)
 
 total_cost    = df["Cost"].sum()
 total_value   = df["Value"].dropna().sum()
@@ -283,7 +282,7 @@ with right:
     st.subheader("Sector Exposure")
     sector_vals: dict = {}
     for _, row in alloc_df.iterrows():
-        s = SECTORS.get(row["Ticker"], "Other")
+        s = sectors.get(row["Ticker"], "Other")
         sector_vals[s] = sector_vals.get(s, 0) + row["Value"]
 
     s_total  = sum(sector_vals.values())
@@ -295,7 +294,7 @@ with right:
         labels=[f"{n}  {p:.1f}%" for n, p in zip(s_names, s_pcts)],
         values=[x[1] for x in s_sorted],
         hole=0.55,
-        marker=dict(colors=[SECTOR_COLORS.get(n, "#8b949e") for n in s_names],
+        marker=dict(colors=[TICKER_PALETTE[i % len(TICKER_PALETTE)] for i in range(len(s_names))],
                     line=dict(color="#161b27", width=2)),
         textinfo="none",
         hovertemplate="<b>%{label}</b><br>$%{value:,.2f}<br>%{percent}<extra></extra>",

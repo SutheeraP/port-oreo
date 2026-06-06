@@ -34,6 +34,17 @@ def fetch_price(ticker: str):
     return None
 
 
+def fetch_sector(ticker: str) -> str:
+    try:
+        info = yf.Ticker(ticker).info
+        if info.get("quoteType") == "ETF":
+            return "ETF"
+        sector = info.get("sector", "")
+        return sector if sector else "Other"
+    except Exception:
+        return "Other"
+
+
 def fetch_split_history(ticker: str, since: str) -> list:
     """List of {date, ratio} for each split on or after the first purchase date."""
     tk = yf.Ticker(ticker)
@@ -77,10 +88,18 @@ def main():
         if history:
             print(f"  {ticker}: {len(history)} split(s) — " + ", ".join(f"{s['date']} {s['ratio']}x" for s in history))
 
+    print("Fetching sectors...")
+    sectors = {}
+    for ticker in tickers:
+        sector = fetch_sector(ticker)
+        sectors[ticker] = sector
+        print(f"  {ticker}: {sector}")
+
     output = {
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "prices": prices,
         "split_history": split_history,
+        "sectors": sectors,
     }
     PRICES_OUT.write_text(json.dumps(output, indent=2))
     print(f"\nSaved to {PRICES_OUT}")
