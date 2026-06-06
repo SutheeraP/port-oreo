@@ -36,7 +36,7 @@ df = load_transactions()
 
 col1, col2 = st.columns(2)
 col1.metric("Total Transactions", len(df), border=True)
-col2.metric("Total Invested (USD)", f"${df['Total (USD)'].sum():,.2f}", border=True)
+col2.metric("Total Invested (THB)", f"${df['THB'].sum():,.2f}", border=True)
 
 styled = (
     df.style

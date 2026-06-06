@@ -17,24 +17,29 @@ from collections import defaultdict
 portfolio = json.load(open('portfolio.json'))
 prices_data = json.load(open('prices.json'))
 prices = prices_data['prices']
-splits = prices_data['split_factors']
+split_history = prices_data.get('split_history', {})
+
+def tx_split_factor(tx_date, history):
+    factor = 1.0
+    for s in history:
+        if s['date'] > tx_date:
+            factor *= s['ratio']
+    return factor
 
 positions = defaultdict(lambda: {'shares': 0.0, 'usd_invested': 0.0, 'thb_invested': 0.0, 'dates': []})
 
 for t in portfolio:
     ticker = t['ticker']
     shares = float(t['shares'])
-    price = float(t['price'])
-    thb = float(t['thb'])
-    positions[ticker]['shares'] += shares
-    positions[ticker]['usd_invested'] += shares * price
-    positions[ticker]['thb_invested'] += thb
+    sf = tx_split_factor(t['date'], split_history.get(ticker, []))
+    positions[ticker]['shares'] += shares * sf
+    positions[ticker]['usd_invested'] += shares * float(t['price'])
+    positions[ticker]['thb_invested'] += float(t['thb'])
     positions[ticker]['dates'].append(t['date'])
 
 results = []
 for ticker, pos in positions.items():
-    split = splits.get(ticker, 1.0)
-    adj_shares = pos['shares'] * split
+    adj_shares = pos['shares']
     current_price = prices[ticker]
     current_value = adj_shares * current_price
     usd_invested = pos['usd_invested']
@@ -88,7 +93,7 @@ print(json.dumps({
 <title>Portfolio Insights — {DATE}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f172a; color: #e2e8f0; padding: 2rem; line-height: 1.6; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #e2e8f0; padding: 2rem; line-height: 1.6; }
   h1 { font-size: 1.6rem; color: #38bdf8; margin-bottom: 0.25rem; }
   .date { color: #64748b; font-size: 0.85rem; margin-bottom: 2rem; }
   h2 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 1rem; }

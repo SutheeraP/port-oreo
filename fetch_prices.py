@@ -34,21 +34,21 @@ def fetch_price(ticker: str):
     return None
 
 
-def fetch_split_factor(ticker: str, since: str) -> float:
-    """Cumulative split ratio for all splits on or after the first purchase date."""
+def fetch_split_history(ticker: str, since: str) -> list:
+    """List of {date, ratio} for each split on or after the first purchase date."""
     tk = yf.Ticker(ticker)
     try:
         splits = tk.splits
         if splits.empty:
-            return 1.0
+            return []
         since_dt = pd.Timestamp(since, tz="UTC")
         relevant = splits[splits.index >= since_dt]
-        factor = 1.0
-        for ratio in relevant:
-            factor *= ratio
-        return round(factor, 6)
+        return [
+            {"date": idx.strftime("%Y-%m-%d"), "ratio": float(ratio)}
+            for idx, ratio in relevant.items()
+        ]
     except Exception:
-        return 1.0
+        return []
 
 
 def main():
@@ -69,18 +69,18 @@ def main():
         status = f"${price}" if price else "FAILED"
         print(f"  {ticker}: {status}")
 
-    print("Fetching split factors...")
-    split_factors = {}
+    print("Fetching split history...")
+    split_history = {}
     for ticker in tickers:
-        sf = fetch_split_factor(ticker, earliest.get(ticker, "2000-01-01"))
-        split_factors[ticker] = sf
-        if sf != 1.0:
-            print(f"  {ticker}: split factor {sf}x")
+        history = fetch_split_history(ticker, earliest.get(ticker, "2000-01-01"))
+        split_history[ticker] = history
+        if history:
+            print(f"  {ticker}: {len(history)} split(s) — " + ", ".join(f"{s['date']} {s['ratio']}x" for s in history))
 
     output = {
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "prices": prices,
-        "split_factors": split_factors,
+        "split_history": split_history,
     }
     PRICES_OUT.write_text(json.dumps(output, indent=2))
     print(f"\nSaved to {PRICES_OUT}")

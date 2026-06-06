@@ -24,20 +24,28 @@ def load_data():
     return portfolio, prices_raw
 
 
-def build_holdings(portfolio, prices, split_factors):
+def tx_split_factor(tx_date: str, history: list) -> float:
+    factor = 1.0
+    for s in history:
+        if s["date"] > tx_date:
+            factor *= s["ratio"]
+    return factor
+
+
+def build_holdings(portfolio, prices, split_history):
     rows = {}
     for tx in portfolio:
         t, shares = tx["ticker"], float(tx["shares"])
+        sf = tx_split_factor(tx["date"], split_history.get(t, []))
         if t not in rows:
             rows[t] = {"shares": 0.0, "cost": 0.0}
-        rows[t]["shares"] += shares
+        rows[t]["shares"] += shares * sf
         rows[t]["cost"]   += shares * float(tx["price"])
 
     records = []
     for t, r in rows.items():
         cp  = prices.get(t)
-        sf  = split_factors.get(t, 1.0)
-        adj = r["shares"] * sf
+        adj = r["shares"]
         cv  = adj * cp if cp else None
         avg = r["cost"] / adj if adj else 0
         pnl = cv - r["cost"] if cv is not None else None
@@ -59,9 +67,9 @@ def build_holdings(portfolio, prices, split_factors):
 # ── load ──────────────────────────────────────────────────────────────────────
 portfolio_data, prices_raw = load_data()
 prices        = prices_raw["prices"]
-split_factors = prices_raw.get("split_factors", {})
+split_history = prices_raw.get("split_history", {})
 fetched_at    = prices_raw.get("fetched_at", "")
-df            = build_holdings(portfolio_data, prices, split_factors)
+df            = build_holdings(portfolio_data, prices, split_history)
 
 total_cost    = df["Cost"].sum()
 total_value   = df["Value"].dropna().sum()
