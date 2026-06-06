@@ -14,7 +14,7 @@ Follow these steps exactly:
    - `exchange`: the exchange name shown in the badge (e.g. "NYSE Arca", "NASDAQ", "NYSE")
    - `price`: the number from "Executed Price" row (USD, digits and decimal only, no currency symbol)
    - `shares`: the number from "Shares" row (digits and decimal only)
-   - `date`: the date from "Submission Date" formatted as YYYY-MM-DD
+   - `date`: the date from "Completion Date" formatted as YYYY-MM-DD
    - `thb`: the number from "Stock Amount" row in THB (digits and decimal only, no currency symbol)
    All values must be strings.
 
