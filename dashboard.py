@@ -102,10 +102,10 @@ with b_col:
 
 # ── metrics ───────────────────────────────────────────────────────────────────
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Total Value", f"${total_value:,.2f}", border=True)
-c2.metric("Invested",    f"${total_cost:,.2f}", border=True)
-c3.metric("Total P&L",  f"${total_pnl:+,.2f}", f"{total_pnl_pct:+.2f}%", border=True)
-c4.metric("Positions",  len(df), f"best: {best_row['Ticker']} {best_row['P&L %']:+.1f}%", border=True)
+c1.metric("Total Value", f"${total_value:,.2f}", border=True, height="stretch")
+c2.metric("Invested",    f"${total_cost:,.2f}", border=True, height="stretch")
+c3.metric("Total P&L",  f"${total_pnl:+,.2f}", f"{total_pnl_pct:+.2f}%", border=True, height="stretch")
+c4.metric("Positions",  len(df), f"best: {best_row['Ticker']} {best_row['P&L %']:+.1f}%", border=True, height="stretch")
 
 st.divider()
 
