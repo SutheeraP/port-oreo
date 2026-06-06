@@ -1,4 +1,5 @@
 *.json
-slips/*
+slips/
 insights.html
-investigate/*
+insights.md
+investigate/
