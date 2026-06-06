@@ -91,41 +91,17 @@ with b_col:
 
 # ── metrics ───────────────────────────────────────────────────────────────────
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Total Value", f"${total_value:,.2f}")
-c2.metric("Invested",    f"${total_cost:,.2f}")
-c3.metric("Total P&L",  f"${total_pnl:+,.2f}", f"{total_pnl_pct:+.2f}%")
-c4.metric("Positions",  len(df), f"best: {best_row['Ticker']} {best_row['P&L %']:+.1f}%")
+c1.metric("Total Value", f"${total_value:,.2f}", border=True)
+c2.metric("Invested",    f"${total_cost:,.2f}", border=True)
+c3.metric("Total P&L",  f"${total_pnl:+,.2f}", f"{total_pnl_pct:+.2f}%", border=True)
+c4.metric("Positions",  len(df), f"best: {best_row['Ticker']} {best_row['P&L %']:+.1f}%", border=True)
 
 st.divider()
 
 # ── main layout ───────────────────────────────────────────────────────────────
 left, right = st.columns([3, 2], gap="large")
 
-with left:
-    st.subheader("Holdings")
-    st.markdown("<style>.stDataFrame * { font-size: 40px !important; }</style>", unsafe_allow_html=True)
 
-    display_cols = ["Ticker", "Sector", "Shares", "Avg Cost", "Price", "Value", "P&L $", "P&L %"]
-
-    def _color_pnl(val):
-        if isinstance(val, (int, float)) and val > 0:
-            return "color: #00d4a0"
-        if isinstance(val, (int, float)) and val < 0:
-            return "color: #ff4560"
-        return ""
-
-    styled = (
-        df[display_cols].style
-        .format({
-            "Avg Cost": "${:,.2f}",
-            "Price":    "${:,.2f}",
-            "Value":    "${:,.2f}",
-            "P&L $":    "${:+,.2f}",
-            "P&L %":    "{:+.2f}%",
-        }, na_rep="—")
-        .map(_color_pnl, subset=["P&L $", "P&L %"])
-    )
-    st.dataframe(styled, use_container_width=True, hide_index=True)
 
 with right:
     st.subheader("Allocation")
@@ -160,25 +136,49 @@ with right:
     s_names  = [x[0] for x in s_sorted]
     s_pcts   = [x[1] / s_total * 100 for x in s_sorted]
 
-    fig_sector = go.Figure(go.Bar(
-        x=s_pcts, y=s_names, orientation="h",
-        marker_color=[SECTOR_COLORS.get(n, "#8b949e") for n in s_names],
-        text=[f"{p:.1f}%" for p in s_pcts],
-        textposition="outside",
-        textfont=dict(color="#8b949e", size=13),
+    fig_sector = go.Figure(go.Pie(
+        labels=[f"{n}  {p:.1f}%" for n, p in zip(s_names, s_pcts)],
+        values=[x[1] for x in s_sorted],
+        hole=0.55,
+        marker=dict(colors=[SECTOR_COLORS.get(n, "#8b949e") for n in s_names],
+                    line=dict(color="#161b27", width=2)),
+        textinfo="none",
+        hovertemplate="<b>%{label}</b><br>$%{value:,.2f}<br>%{percent}<extra></extra>",
     ))
     fig_sector.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#8b949e", size=14),
-        height=max(140, len(s_names) * 45),
-        margin=dict(t=0, b=0, l=0, r=50),
-        showlegend=False,
-        xaxis=dict(visible=False, range=[0, max(s_pcts) * 1.35]),
-        yaxis=dict(tickfont=dict(color="#c9d1d9", size=14), gridcolor="rgba(0,0,0,0)"),
-        bargap=0.45,
+        height=280, margin=dict(t=0, b=0, l=0, r=0),
+        legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9", size=20)),
     )
     st.plotly_chart(fig_sector, use_container_width=True)
 
+
+with left:
+    st.subheader("Holdings")
+    st.markdown("<style>.stDataFrame * { font-size: 32px !important; }</style>", unsafe_allow_html=True)
+
+    display_cols = ["Ticker", "Sector", "Shares", "Avg Cost", "Price", "Value", "P&L $", "P&L %"]
+
+    def _color_pnl(val):
+        if isinstance(val, (int, float)) and val > 0:
+            return "color: #00d4a0"
+        if isinstance(val, (int, float)) and val < 0:
+            return "color: #ff4560"
+        return ""
+
+    styled = (
+        df[display_cols].style
+        .format({
+            "Avg Cost": "${:,.2f}",
+            "Price":    "${:,.2f}",
+            "Value":    "${:,.2f}",
+            "P&L $":    "${:+,.2f}",
+            "P&L %":    "{:+.2f}%",
+        }, na_rep="—")
+        .map(_color_pnl, subset=["P&L $", "P&L %"])
+    )
+    st.dataframe(styled, use_container_width=True, hide_index=True)
 # ── AI insights ───────────────────────────────────────────────────────────────
 st.divider()
 st.subheader("AI Insights")
