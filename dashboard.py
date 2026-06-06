@@ -1,7 +1,9 @@
 import json
 import subprocess
-from datetime import datetime, timezone
+import numpy as np
+from datetime import date as date_type, datetime, timedelta, timezone
 from pathlib import Path
+from perf_engine import build_master_history, compute_scoped_irr
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -63,7 +65,6 @@ def build_holdings(portfolio, prices, split_history):
         })
     return pd.DataFrame(records).sort_values("Value", ascending=False)
 
-
 # ── load ──────────────────────────────────────────────────────────────────────
 portfolio_data, prices_raw = load_data()
 prices        = prices_raw["prices"]
@@ -85,9 +86,9 @@ except Exception:
 n_prices = sum(1 for v in prices.values() if v is not None)
 
 # ── header ────────────────────────────────────────────────────────────────────
-h_col, s_col, b_col = st.columns([3, 3, 1])
-h_col.subheader("Portfolio Dashboard")
-s_col.caption(f"● {n_prices} prices loaded · {time_str}")
+h_col, b_col = st.columns([6, 1])
+h_col.header("Portfolio Dashboard")
+st.caption(f"● {n_prices} prices loaded · {time_str}")
 
 with b_col:
     if st.button("↻ Refresh", width="stretch"):
@@ -105,6 +106,150 @@ c1.metric("Total Value", f"${total_value:,.2f}", border=True)
 c2.metric("Invested",    f"${total_cost:,.2f}", border=True)
 c3.metric("Total P&L",  f"${total_pnl:+,.2f}", f"{total_pnl_pct:+.2f}%", border=True)
 c4.metric("Positions",  len(df), f"best: {best_row['Ticker']} {best_row['P&L %']:+.1f}%", border=True)
+
+st.divider()
+
+# ── performance chart ─────────────────────────────────────────────────────────
+hist = build_master_history(PORTFOLIO.read_text(), PRICES.read_text())
+mdf  = hist["df"]
+
+scope = st.session_state.get("perf_scope", "ALL") or "ALL"
+
+perf_head, mode_col = st.columns([9, 3])
+perf_head.subheader("Performance")
+
+with mode_col:
+    view_mode = st.segmented_control(
+        "view_mode",
+        ["Value", "TWR", "MWR"],
+        default="Value",
+        selection_mode="single",
+        label_visibility="collapsed",
+        key="perf_view",
+        width="stretch"
+    )
+view_mode = view_mode or "Value"
+
+today_d = date_type.today()
+if scope == "7D":
+    scope_start = today_d - timedelta(days=7)
+elif scope == "MTD":
+    scope_start = today_d - timedelta(days=31)
+elif scope == "YTD":
+    scope_start = today_d.replace(month=1, day=1)
+elif scope == "1Y":
+    try:
+        scope_start = today_d.replace(year=today_d.year - 1)
+    except ValueError:
+        scope_start = today_d - timedelta(days=365)
+else:
+    scope_start = mdf.index[0].date()
+
+idx0      = int(mdf.index.searchsorted(pd.Timestamp(scope_start)))
+idx0      = max(0, min(idx0, len(mdf) - 1))
+df_scoped = mdf.iloc[idx0:]
+
+_CHART_BASE = dict(
+    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(color="#8b949e"), height=300,
+    margin=dict(t=10, b=30, l=0, r=0),
+    xaxis=dict(showgrid=False, zeroline=False, tickfont=dict(color="#8b949e", size=11)),
+    legend=dict(orientation="h", x=0, y=1.12, font=dict(color="#abb2b9", size=12),
+                bgcolor="rgba(0,0,0,0)"),
+    hovermode="x unified",
+)
+
+if view_mode == "Value":
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df_scoped.index, y=df_scoped["portfolio_value"],
+        mode="lines", name="Portfolio Value",
+        line=dict(color="#00d4a0", width=2.5),
+        hovertemplate="$%{y:,.2f}<extra>Portfolio Value</extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_scoped.index, y=df_scoped["cum_deposits"],
+        mode="lines", name="Cumulative Deposits",
+        line=dict(color="#3b82f6", width=1.5, dash="dash"),
+        hovertemplate="$%{y:,.2f}<extra>Cumulative Deposits</extra>",
+    ))
+    fig.update_layout(
+        **_CHART_BASE,
+        yaxis=dict(showgrid=True, gridcolor="#1f2937", zeroline=False,
+                   tickfont=dict(color="#8b949e", size=11),
+                   tickprefix="$", tickformat=",.2f"),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+elif view_mode == "TWR":
+    twr_base = 1.0 + float(mdf["twr"].iloc[idx0])
+    twr_pct  = ((1.0 + df_scoped["twr"].values) / twr_base - 1.0) * 100.0
+
+    sp_base  = float(mdf["sp500"].iloc[idx0])
+    nq_base  = float(mdf["nasdaq"].iloc[idx0])
+    sp_pct   = (df_scoped["sp500"].values  / sp_base - 1.0) * 100.0 if sp_base else np.zeros(len(df_scoped))
+    nq_pct   = (df_scoped["nasdaq"].values / nq_base - 1.0) * 100.0 if nq_base else np.zeros(len(df_scoped))
+
+    fig = go.Figure()
+    fig.add_hline(y=0, line=dict(color="#374151", width=1, dash="dot"))
+    fig.add_trace(go.Scatter(
+        x=df_scoped.index, y=twr_pct,
+        mode="lines", name="Portfolio TWR",
+        line=dict(color="#00d4a0", width=2.5),
+        hovertemplate="%{y:,.2f}%<extra>Portfolio TWR</extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_scoped.index, y=sp_pct,
+        mode="lines", name="S&P 500 ✦",
+        line=dict(color="#3b82f6", width=1.5, dash="dot"),
+        hovertemplate="%{y:,.2f}%<extra>S&P 500</extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_scoped.index, y=nq_pct,
+        mode="lines", name="Nasdaq ✦",
+        line=dict(color="#f59e0b", width=1.5, dash="dot"),
+        hovertemplate="%{y:,.2f}%<extra>Nasdaq</extra>",
+    ))
+    fig.update_layout(
+        **_CHART_BASE,
+        yaxis=dict(showgrid=True, gridcolor="#1f2937", zeroline=False,
+                   tickfont=dict(color="#8b949e", size=11),
+                   ticksuffix="%", tickformat=".1f"),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+else:  # MWR
+    if scope == "ALL":
+        irr_scoped = hist["irr"]
+    else:
+        irr_scoped = compute_scoped_irr(mdf, idx0, portfolio_data, today_d)
+
+    holding_days   = (today_d - mdf.index[idx0].date()).days
+    total_invested = float(df_scoped["deposits"].sum())
+    current_value  = float(mdf["portfolio_value"].iloc[-1])
+
+    _, metric_col, _ = st.columns([1, 3, 1])
+    with metric_col:
+        st.metric("Annualized IRR (MWR)", f"{irr_scoped * 100:+.1f}%")
+        if holding_days < 30:
+            st.caption("Short holding period — annualized rate may appear large")
+        st.markdown("<br>", unsafe_allow_html=True)
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Total Invested", f"${total_invested:,.2f}")
+        m2.metric("Current Value",  f"${current_value:,.2f}")
+        m3.metric("Holding Period", f"{holding_days}d")
+
+_, scope_center, _ = st.columns([1, 1, 1])
+with scope_center:
+    st.segmented_control(
+        "scope",
+        ["7D", "MTD", "YTD", "1Y", "ALL"],
+        default="ALL",
+        selection_mode="single",
+        label_visibility="collapsed",
+        key="perf_scope",
+        width="stretch"
+    )
 
 st.divider()
 
@@ -131,7 +276,7 @@ with right:
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#8b949e", size=14),
         height=280, margin=dict(t=0, b=0, l=0, r=0),
-        legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9",size=16)),
+        legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9",size=14)),
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
@@ -159,14 +304,14 @@ with right:
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#8b949e", size=14),
         height=200, margin=dict(t=0, b=0, l=0, r=0),
-        legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9", size=16)),
+        legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9", size=14)),
     )
     st.plotly_chart(fig_sector, use_container_width=True)
 
 
 with left:
     st.subheader("Holdings")
-    st.markdown("<style>.stDataFrame * { font-size: 28px !important; }</style>", unsafe_allow_html=True)
+    st.markdown("<style>.stDataFrame * { font-size: 14px !important; }</style>", unsafe_allow_html=True)
 
     display_cols = ["Ticker", "Sector", "Shares", "Avg Cost", "Price", "Value", "P&L $", "P&L %"]
 
