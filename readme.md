@@ -1,6 +1,6 @@
-# myPortOreo
+# Port-Oreo
 
-A personal DCA portfolio tracker built for someone new to the stock market who wants a clean, data-driven way to follow their investments over time.
+A personal DCA portfolio tracker with AI-powered transaction capture and portfolio analysis, built for someone new to the stock market who wants a clean, data-driven way to follow their investments over time.
 
 ## About
 
@@ -8,16 +8,16 @@ I started investing with a simple Dollar-Cost Averaging (DCA) strategy — makin
 
 ## Features
 
-- **Holdings dashboard** — per-ticker view of shares held, average cost, current price, market value, and P&L ($ and %)
-- **Performance charts** — three modes:
+
+- **Performance charts**
   - **Value** — portfolio value vs. cumulative deposits over time
   - **TWR** (Time-Weighted Return) — your return vs. S&P 500 and Nasdaq benchmarks
   - **MWR** (Money-Weighted Return / IRR) — annualized return accounting for the timing of your deposits
-- **Time-scope filters** — 7D, MTD, YTD, 1Y, ALL
 - **Sector & allocation charts** — donut charts showing how capital is distributed across sectors
-- **Transactions page** — full history of all purchases in reverse-chronological order
-- **AI Insights page** — auto-generated HTML report with portfolio summary, winners/underperformers, sector concentration risk, and next steps
-- **Stock split handling** — split ratios are fetched and applied automatically (e.g. an 8-for-1 split adjusts all prior share counts)
+- **Holdings dashboard** — per-ticker view of shares held
+- **Transactions page** — full history of all purchases
+- **AI Insights page** — auto-generated HTML report with portfolio summary
+- **Stock split handling** — split ratios are fetched and applied automatically
 - **Live price refresh** — fetches current prices from Yahoo Finance on demand
 - **Dual-currency tracking** — purchase costs tracked in both USD and THB
 
@@ -30,6 +30,7 @@ I started investing with a simple Dollar-Cost Averaging (DCA) strategy — makin
 | [NumPy](https://numpy.org) | Numerical computations |
 | [Plotly](https://plotly.com/python/) | Interactive charts |
 | [yfinance](https://github.com/ranaroussi/yfinance) | Yahoo Finance price & split data |
+| [Claude](https://claude.ai/code) (Claude Code) | AI slip parsing & portfolio analysis |
 | Python 3 | Language runtime |
 
 ## Getting Started
