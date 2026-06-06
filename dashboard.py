@@ -11,7 +11,6 @@ st.set_page_config(page_title="Portfolio", page_icon="📈", layout="wide")
 
 PORTFOLIO = Path("portfolio.json")
 PRICES    = Path("prices.json")
-INSIGHTS  = Path("insights.md")
 
 
 
@@ -80,7 +79,7 @@ h_col.subheader("Portfolio Dashboard")
 s_col.caption(f"● {n_prices} prices loaded · {time_str}")
 
 with b_col:
-    if st.button("↻ Refresh", use_container_width=True):
+    if st.button("↻ Refresh", width="stretch"):
         with st.spinner("Fetching…"):
             result = subprocess.run(["python3", "fetch_prices.py"], capture_output=True, text=True)
         if result.returncode == 0:
@@ -178,11 +177,4 @@ with left:
         }, na_rep="—")
         .map(_color_pnl, subset=["P&L $", "P&L %"])
     )
-    st.dataframe(styled, use_container_width=True, hide_index=True)
-# ── AI insights ───────────────────────────────────────────────────────────────
-st.divider()
-st.subheader("AI Insights")
-if INSIGHTS.exists():
-    st.markdown(INSIGHTS.read_text())
-else:
-    st.info("No insights yet. Ask Claude to analyze `portfolio.json` + `prices.json` and write to `insights.md`.")
+    st.dataframe(styled,  width="stretch", hide_index=True)

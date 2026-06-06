@@ -1,1 +1,1 @@
-python3 -m streamlit run app.py --server.headless true
+python3 -m streamlit run dashboard.py --server.headless true
