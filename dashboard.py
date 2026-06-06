@@ -24,7 +24,7 @@ def load_data():
     return portfolio, prices_raw
 
 
-def build_holdings(portfolio, prices):
+def build_holdings(portfolio, prices, split_factors):
     rows = {}
     for tx in portfolio:
         t, shares = tx["ticker"], float(tx["shares"])
@@ -36,14 +36,16 @@ def build_holdings(portfolio, prices):
     records = []
     for t, r in rows.items():
         cp  = prices.get(t)
-        cv  = r["shares"] * cp if cp else None
-        avg = r["cost"] / r["shares"] if r["shares"] else 0
+        sf  = split_factors.get(t, 1.0)
+        adj = r["shares"] * sf
+        cv  = adj * cp if cp else None
+        avg = r["cost"] / adj if adj else 0
         pnl = cv - r["cost"] if cv is not None else None
         pct = pnl / r["cost"] * 100 if pnl is not None and r["cost"] else None
         records.append({
             "Ticker":   t,
             "Sector":   SECTORS.get(t, "Other"),
-            "Shares":   round(r["shares"], 4),
+            "Shares":   round(adj, 4),
             "Avg Cost": round(avg, 2),
             "Price":    cp,
             "Cost":     round(r["cost"], 2),
@@ -56,9 +58,10 @@ def build_holdings(portfolio, prices):
 
 # ── load ──────────────────────────────────────────────────────────────────────
 portfolio_data, prices_raw = load_data()
-prices     = prices_raw["prices"]
-fetched_at = prices_raw.get("fetched_at", "")
-df         = build_holdings(portfolio_data, prices)
+prices        = prices_raw["prices"]
+split_factors = prices_raw.get("split_factors", {})
+fetched_at    = prices_raw.get("fetched_at", "")
+df            = build_holdings(portfolio_data, prices, split_factors)
 
 total_cost    = df["Cost"].sum()
 total_value   = df["Value"].dropna().sum()
