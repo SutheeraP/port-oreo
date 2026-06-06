@@ -1,10 +1,10 @@
 import json
-import subprocess
 import numpy as np
 from datetime import date as date_type, datetime, timedelta, timezone
 from pathlib import Path
 from perf_engine import build_master_history, compute_scoped_irr
 
+import fetch_prices
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -17,9 +17,14 @@ PRICES    = Path("prices.json")
 TICKER_PALETTE = ["#00d4a0", "#ff6b35", "#7c3aed", "#3b82f6", "#f59e0b", "#ec4899", "#06b6d4", "#84cc16"]
 
 
+PORTFOLIO_SAMPLE = Path("portfolio.sample.json")
+
 @st.cache_data(ttl=300)
 def load_data():
-    portfolio  = json.loads(PORTFOLIO.read_text())
+    portfolio_path = PORTFOLIO if PORTFOLIO.exists() else PORTFOLIO_SAMPLE
+    if not PRICES.exists():
+        fetch_prices.main()
+    portfolio  = json.loads(portfolio_path.read_text())
     prices_raw = json.loads(PRICES.read_text())
     return portfolio, prices_raw
 
@@ -92,12 +97,12 @@ st.caption(f"● {n_prices} prices loaded · {time_str}")
 with b_col:
     if st.button("↻ Refresh", width="stretch"):
         with st.spinner("Fetching…"):
-            result = subprocess.run(["python3", "fetch_prices.py"], capture_output=True, text=True)
-        if result.returncode == 0:
-            st.cache_data.clear()
-            st.rerun()
-        else:
-            st.error(result.stderr)
+            try:
+                fetch_prices.main()
+                st.cache_data.clear()
+                st.rerun()
+            except Exception as e:
+                st.error(str(e))
 
 # ── metrics ───────────────────────────────────────────────────────────────────
 c1, c2, c3, c4 = st.columns(4)
@@ -109,7 +114,7 @@ c4.metric("Positions",  len(df), f"best: {best_row['Ticker']} {best_row['P&L %']
 st.divider()
 
 # ── performance chart ─────────────────────────────────────────────────────────
-hist = build_master_history(PORTFOLIO.read_text(), PRICES.read_text())
+hist = build_master_history(json.dumps(portfolio_data), json.dumps(prices_raw))
 mdf  = hist["df"]
 
 scope = st.session_state.get("perf_scope", "ALL") or "ALL"

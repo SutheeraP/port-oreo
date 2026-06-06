@@ -6,12 +6,15 @@ import streamlit as st
 
 st.set_page_config(page_title="Transactions", page_icon="📋", layout="wide")
 
-PORTFOLIO = Path(__file__).parent.parent / "portfolio.json"
+_ROOT = Path(__file__).parent.parent
+PORTFOLIO = _ROOT / "portfolio.json"
+PORTFOLIO_SAMPLE = _ROOT / "portfolio.sample.json"
 
 
 @st.cache_data(ttl=300)
 def load_transactions() -> pd.DataFrame:
-    raw = json.loads(PORTFOLIO.read_text())
+    portfolio_path = PORTFOLIO if PORTFOLIO.exists() else PORTFOLIO_SAMPLE
+    raw = json.loads(portfolio_path.read_text())
     df = pd.DataFrame(raw)
     df["shares"] = df["shares"].astype(float)
     df["price"] = df["price"].astype(float)
@@ -36,7 +39,7 @@ df = load_transactions()
 
 col1, col2 = st.columns(2)
 col1.metric("Total Transactions", len(df), border=True)
-col2.metric("Total Invested (THB)", f"${df['THB'].sum():,.2f}", border=True)
+col2.metric("Total Invested (THB)", f"฿{df['THB'].sum():,.2f}", border=True)
 
 styled = (
     df.style

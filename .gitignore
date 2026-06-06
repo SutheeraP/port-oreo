@@ -1,4 +1,5 @@
 *.json
+!portfolio.sample.json
 slips/
 insights.html
 insights.md

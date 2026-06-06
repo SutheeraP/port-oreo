@@ -10,6 +10,7 @@ import pandas as pd
 import yfinance as yf
 
 PORTFOLIO = Path("portfolio.json")
+PORTFOLIO_SAMPLE = Path("portfolio.sample.json")
 PRICES_OUT = Path("prices.json")
 
 
@@ -63,7 +64,8 @@ def fetch_split_history(ticker: str, since: str) -> list:
 
 
 def main():
-    portfolio = json.loads(PORTFOLIO.read_text())
+    portfolio_path = PORTFOLIO if PORTFOLIO.exists() else PORTFOLIO_SAMPLE
+    portfolio = json.loads(portfolio_path.read_text())
     tickers = get_tickers(portfolio)
 
     earliest = {}

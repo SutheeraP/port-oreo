@@ -1,0 +1,17 @@
+[
+  {"ticker": "VOO",  "shares": "0.2526", "price": "480.00", "date": "2025-01-15", "exchange": "NYSE Arca", "thb": "4300"},
+  {"ticker": "AAPL", "shares": "0.1580", "price": "185.20", "date": "2025-02-01", "exchange": "NASDAQ",   "thb": "1050"},
+  {"ticker": "LLY",  "shares": "0.0312", "price": "735.00", "date": "2025-03-10", "exchange": "NYSE",     "thb": "820"},
+  {"ticker": "KO",   "shares": "0.9800", "price": "61.50",  "date": "2025-04-05", "exchange": "NYSE",     "thb": "2150"},
+  {"ticker": "NVDA", "shares": "1.3010", "price": "115.00", "date": "2025-05-20", "exchange": "NASDAQ",   "thb": "5350"},
+  {"ticker": "VOO",  "shares": "0.1504", "price": "520.00", "date": "2025-07-08", "exchange": "NYSE Arca", "thb": "2800"},
+  {"ticker": "AAPL", "shares": "0.2100", "price": "210.00", "date": "2025-08-12", "exchange": "NASDAQ",   "thb": "1580"},
+  {"ticker": "LLY",  "shares": "0.0420", "price": "880.00", "date": "2025-09-03", "exchange": "NYSE",     "thb": "1320"},
+  {"ticker": "KO",   "shares": "1.2500", "price": "63.80",  "date": "2025-10-15", "exchange": "NYSE",     "thb": "2850"},
+  {"ticker": "NVDA", "shares": "0.0950", "price": "136.00", "date": "2025-11-20", "exchange": "NASDAQ",   "thb": "4640"},
+  {"ticker": "VOO",  "shares": "0.1010", "price": "545.00", "date": "2026-01-06", "exchange": "NYSE Arca", "thb": "1980"},
+  {"ticker": "AAPL", "shares": "0.1650", "price": "228.00", "date": "2026-02-04", "exchange": "NASDAQ",   "thb": "1350"},
+  {"ticker": "LLY",  "shares": "0.0280", "price": "820.00", "date": "2026-03-11", "exchange": "NYSE",     "thb": "825"},
+  {"ticker": "NVDA", "shares": "0.1240", "price": "112.00", "date": "2026-04-07", "exchange": "NASDAQ",   "thb": "4990"},
+  {"ticker": "KO",   "shares": "0.8600", "price": "70.20",  "date": "2026-05-16", "exchange": "NYSE",     "thb": "2170"}
+]
