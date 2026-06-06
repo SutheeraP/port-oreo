@@ -121,13 +121,13 @@ with mode_col:
     view_mode = st.segmented_control(
         "view_mode",
         ["Value", "TWR", "MWR"],
-        default="Value",
+        default="TWR",
         selection_mode="single",
         label_visibility="collapsed",
         key="perf_view",
         width="stretch"
     )
-view_mode = view_mode or "Value"
+view_mode = view_mode or "TWR"
 
 today_d = date_type.today()
 if scope == "7D":
@@ -253,11 +253,35 @@ with scope_center:
 st.divider()
 
 # ── main layout ───────────────────────────────────────────────────────────────
-left, right = st.columns([3, 2], gap="large")
+left, right = st.columns([1, 1], gap="large")
 
 
+st.subheader("Holdings")
+st.markdown("<style>.stDataFrame * { font-size: 14px !important; }</style>", unsafe_allow_html=True)
 
-with right:
+display_cols = ["Ticker", "Sector", "Shares", "Avg Cost", "Price", "Value", "P&L $", "P&L %"]
+
+def _color_pnl(val):
+    if isinstance(val, (int, float)) and val > 0:
+        return "color: #00d4a0"
+    if isinstance(val, (int, float)) and val < 0:
+        return "color: #ff4560"
+    return ""
+
+styled = (
+    df[display_cols].style
+    .format({
+        "Avg Cost": "${:,.2f}",
+        "Price":    "${:,.2f}",
+        "Value":    "${:,.2f}",
+        "P&L $":    "${:+,.2f}",
+        "P&L %":    "{:+.2f}%",
+    }, na_rep="—")
+    .map(_color_pnl, subset=["P&L $", "P&L %"])
+)
+st.dataframe(styled,  width="stretch", hide_index=True)
+
+with left:
     st.subheader("Allocation")
     alloc_df = df[df["Value"].notna()].copy()
     total_v  = alloc_df["Value"].sum()
@@ -274,11 +298,12 @@ with right:
     fig_pie.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#8b949e", size=14),
-        height=280, margin=dict(t=0, b=0, l=0, r=0),
+        height=280, margin=dict(t=2, b=0, l=0, r=0),
         legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9",size=14)),
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
+with right:
     st.subheader("Sector Exposure")
     sector_vals: dict = {}
     for _, row in alloc_df.iterrows():
@@ -287,49 +312,24 @@ with right:
 
     s_total  = sum(sector_vals.values())
     s_sorted = sorted(sector_vals.items(), key=lambda x: -x[1])
-    s_names  = [x[0] for x in s_sorted]
-    s_pcts   = [x[1] / s_total * 100 for x in s_sorted]
+    s_labels = [f"{name}  {val/s_total*100:.1f}%" for name, val in s_sorted]
+    s_values = [val for _, val in s_sorted]
+    s_colors = [TICKER_PALETTE[i % len(TICKER_PALETTE)] for i in range(len(s_sorted))]
 
     fig_sector = go.Figure(go.Pie(
-        labels=[f"{n}  {p:.1f}%" for n, p in zip(s_names, s_pcts)],
-        values=[x[1] for x in s_sorted],
+        labels=s_labels,
+        values=s_values,
         hole=0.55,
-        marker=dict(colors=[TICKER_PALETTE[i % len(TICKER_PALETTE)] for i in range(len(s_names))],
-                    line=dict(color="#161b27", width=2)),
+        marker=dict(colors=s_colors, line=dict(color="#161b27", width=2)),
         textinfo="none",
         hovertemplate="<b>%{label}</b><br>$%{value:,.2f}<br>%{percent}<extra></extra>",
     ))
     fig_sector.update_layout(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#8b949e", size=14),
-        height=200, margin=dict(t=0, b=0, l=0, r=0),
+        height=280, margin=dict(t=2, b=0, l=0, r=0),
         legend=dict(orientation="h", x=0, y=-0.05, font=dict(color="#abb2b9", size=14)),
     )
     st.plotly_chart(fig_sector, use_container_width=True)
 
 
-with left:
-    st.subheader("Holdings")
-    st.markdown("<style>.stDataFrame * { font-size: 14px !important; }</style>", unsafe_allow_html=True)
-
-    display_cols = ["Ticker", "Sector", "Shares", "Avg Cost", "Price", "Value", "P&L $", "P&L %"]
-
-    def _color_pnl(val):
-        if isinstance(val, (int, float)) and val > 0:
-            return "color: #00d4a0"
-        if isinstance(val, (int, float)) and val < 0:
-            return "color: #ff4560"
-        return ""
-
-    styled = (
-        df[display_cols].style
-        .format({
-            "Avg Cost": "${:,.2f}",
-            "Price":    "${:,.2f}",
-            "Value":    "${:,.2f}",
-            "P&L $":    "${:+,.2f}",
-            "P&L %":    "{:+.2f}%",
-        }, na_rep="—")
-        .map(_color_pnl, subset=["P&L $", "P&L %"])
-    )
-    st.dataframe(styled,  width="stretch", hide_index=True)
