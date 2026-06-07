@@ -72,13 +72,13 @@ This fetches current prices and any new stock splits, then writes `prices.json`.
 ### Step 3 — View the dashboard
 
 The main dashboard shows:
-- **Holdings table** at the top — your current positions with P&L
-- **Performance chart** below — switch between Value / TWR / MWR using the buttons, and filter by time scope (7D, MTD, YTD, 1Y, ALL)
-- **Allocation charts** at the bottom — sector and per-ticker donut charts
+- **Holdings table** — your current positions with P&L
+- **Performance chart** — switch between Value / TWR / MWR using the buttons, and filter by time scope (7D, MTD, YTD, 1Y, ALL)
+- **Allocation charts** — sector and per-ticker donut charts
 
 ### Step 4 — Browse transactions
 
-Navigate to **Transactions** in the sidebar to see every purchase in a sortable table with total THB invested shown at the top.
+Navigate to **Transactions** in the sidebar to see every purchase in a sortable table.
 
 ### Step 5 — Generate AI Insights
 
@@ -88,7 +88,7 @@ Run the Claude Code skill to generate a full HTML report:
 /ai-insight
 ```
 
-Then open the **AI Insights** page in the sidebar to read the report — it includes an overall portfolio summary, per-position breakdown, sector concentration analysis, top winners and underperformers, key risks, and suggested next steps.
+Then open the **AI Insights** page in the sidebar to read the report
 
 ## Data Files
 
