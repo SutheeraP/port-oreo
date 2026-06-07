@@ -8,7 +8,8 @@ I started investing with a simple Dollar-Cost Averaging (DCA) strategy — makin
 
 ## Features
 
-
+- **Live price refresh** — fetches current prices from Yahoo Finance on demand
+- **AI Insights page** — auto-generated HTML report with portfolio summary
 - **Performance charts**
   - **Value** — portfolio value vs. cumulative deposits over time
   - **TWR** (Time-Weighted Return) — your return vs. S&P 500 and Nasdaq benchmarks
@@ -16,10 +17,7 @@ I started investing with a simple Dollar-Cost Averaging (DCA) strategy — makin
 - **Sector & allocation charts** — donut charts showing how capital is distributed across sectors
 - **Holdings dashboard** — per-ticker view of shares held
 - **Transactions page** — full history of all purchases
-- **AI Insights page** — auto-generated HTML report with portfolio summary
 - **Stock split handling** — split ratios are fetched and applied automatically
-- **Live price refresh** — fetches current prices from Yahoo Finance on demand
-- **Dual-currency tracking** — purchase costs tracked in both USD and THB
 
 ## Tech Stack
 
