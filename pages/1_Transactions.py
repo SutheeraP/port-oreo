@@ -21,6 +21,8 @@ def load_transactions() -> pd.DataFrame:
     df["price"] = df["price"].astype(float)
     df["thb"] = df["thb"].astype(float)
     df["total_usd"] = df["shares"] * df["price"]
+    df["fx_rate"] = pd.to_numeric(df.get("fx_rate"), errors="coerce")
+    df["thb_source"] = df.get("thb_source", pd.Series([""] * len(df))).fillna("")
     df["date"] = pd.to_datetime(df["date"]).dt.date
     df = df.sort_values("date", ascending=False).reset_index(drop=True)
     return df.rename(columns={
@@ -30,9 +32,11 @@ def load_transactions() -> pd.DataFrame:
         "shares": "Shares",
         "price": "Price (USD)",
         "thb": "THB",
+        "fx_rate": "FX Rate",
+        "thb_source": "THB Source",
         "total_usd": "Total (USD)",
         "exchange": "Exchange",
-    })[["Date", "Ticker", "Type", "Shares", "Price (USD)", "THB", "Total (USD)", "Exchange"]]
+    })[["Date", "Ticker", "Type", "Shares", "Price (USD)", "THB", "FX Rate", "THB Source", "Total (USD)", "Exchange"]]
 
 
 st.subheader("Transactions")
@@ -52,11 +56,15 @@ c4.metric("Net Invested (THB)", f"฿{net_invested:,.2f}",  border=True)
 def _color_type(val):
     return "color: #00d4a0" if val == "buy" else "color: #ff4560"
 
+def _color_source(val):
+    return "color: #f59e0b" if val == "bot_rate" else "color: #45556e"
+
 styled = (
     df.style
     .map(lambda _: "color: #45556e", subset=["Exchange"])
     .map(lambda _: "color: #00d4a0", subset=["Total (USD)"])
     .map(_color_type, subset=["Type"])
+    .map(_color_source, subset=["THB Source"])
 )
 
 st.dataframe(
@@ -67,6 +75,7 @@ st.dataframe(
         "Shares": st.column_config.NumberColumn("Shares", format="%.6f"),
         "Price (USD)": st.column_config.NumberColumn("Price (USD)", format="$%.2f"),
         "THB": st.column_config.NumberColumn("THB (฿)", format="฿%.2f"),
+        "FX Rate": st.column_config.NumberColumn("FX Rate (฿/$)", format="%.4f"),
         "Total (USD)": st.column_config.NumberColumn("Total (USD)", format="$%.2f"),
     },
     hide_index=True,

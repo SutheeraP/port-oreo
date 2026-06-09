@@ -3,7 +3,7 @@ import numpy as np
 from collections import deque
 from datetime import date as date_type, datetime, timedelta, timezone
 from pathlib import Path
-from perf_engine import build_master_history, compute_scoped_irr
+from perf_engine import build_master_history, compute_scoped_irr, compute_tax_summary
 
 import fetch_prices
 import pandas as pd
@@ -100,6 +100,7 @@ total_value   = df["Value"].dropna().sum()
 total_pnl     = total_value - total_cost
 total_pnl_pct = total_pnl / total_cost * 100 if total_cost else 0
 best_row      = df[df["P&L %"].notna()].sort_values("P&L %", ascending=False).iloc[0]
+tax_summary   = compute_tax_summary(portfolio_data)
 
 try:
     time_str = datetime.fromisoformat(fetched_at).astimezone(timezone.utc).strftime("%I:%M %p UTC")
@@ -124,11 +125,13 @@ with b_col:
                 st.error(str(e))
 
 # ── metrics ───────────────────────────────────────────────────────────────────
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Total Value", f"${total_value:,.2f}", border=True, height="stretch")
 c2.metric("Invested",    f"${total_cost:,.2f}", border=True, height="stretch")
 c3.metric("Total P&L",  f"${total_pnl:+,.2f}", f"{total_pnl_pct:+.2f}%", border=True, height="stretch")
 c4.metric("Positions",  len(df), f"best: {best_row['Ticker']} {best_row['P&L %']:+.1f}%", border=True, height="stretch")
+st.metric("Tax P&L (THB)", f"฿{tax_summary['realized_pnl_thb']:+,.2f}",
+          f"realized · {tax_summary['total_proceeds_thb']:,.0f} proceeds", border=True, height="stretch")
 
 st.divider()
 

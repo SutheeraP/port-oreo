@@ -157,6 +157,53 @@ def build_master_history(portfolio_json_str: str, prices_json_str: str) -> dict:
     return {"df": master_df, "irr": _xirr(irr_cf, irr_dt)}
 
 
+def compute_tax_summary(portfolio_data: list) -> dict:
+    """
+    FIFO-matched THB tax P&L for realized gains/losses.
+    Requires fx_rate and thb_source on each transaction.
+    Returns total_invested_thb, total_proceeds_thb, realized_pnl_thb.
+    """
+    from collections import deque
+    lots: dict = {}
+    total_invested = 0.0
+    total_proceeds = 0.0
+    realized_pnl   = 0.0
+
+    for tx in sorted(portfolio_data, key=lambda x: x["date"]):
+        t     = tx["ticker"]
+        thb   = float(tx.get("thb", 0))
+        ttype = tx.get("type", "buy")
+
+        if ttype == "buy":
+            total_invested += thb
+            if t not in lots:
+                lots[t] = deque()
+            lots[t].append((float(tx["shares"]), thb))
+        else:
+            total_proceeds += thb
+            remaining_shares = float(tx["shares"])
+            cost_thb = 0.0
+            if t in lots:
+                while remaining_shares > 1e-10 and lots[t]:
+                    lot_shares, lot_thb = lots[t][0]
+                    if lot_shares <= remaining_shares + 1e-10:
+                        cost_thb += lot_thb
+                        remaining_shares -= lot_shares
+                        lots[t].popleft()
+                    else:
+                        fraction = remaining_shares / lot_shares
+                        cost_thb += lot_thb * fraction
+                        lots[t][0] = (lot_shares - remaining_shares, lot_thb * (1 - fraction))
+                        remaining_shares = 0.0
+            realized_pnl += thb - cost_thb
+
+    return {
+        "total_invested_thb": round(total_invested, 2),
+        "total_proceeds_thb": round(total_proceeds, 2),
+        "realized_pnl_thb":   round(realized_pnl, 2),
+    }
+
+
 def compute_scoped_irr(
     mdf: pd.DataFrame,
     idx0: int,
