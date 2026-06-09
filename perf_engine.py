@@ -114,13 +114,17 @@ def build_master_history(portfolio_json_str: str, prices_json_str: str) -> dict:
             for s in splits_t:
                 if s["date"] > tx["date"]:
                     sf *= s["ratio"]
-            shares_held[tx_pos:] += float(tx["shares"]) * sf
+            delta = float(tx["shares"]) * sf
+            if tx.get("type", "buy") == "sell":
+                delta = -delta
+            shares_held[tx_pos:] += delta
         portfolio_value += shares_held * price_df["close"].reindex(full_idx, method="ffill").values
 
     # Daily deposits and cumulative sum
     deposits = pd.Series(0.0, index=full_idx, dtype=float)
     for tx in pdata:
-        deposits[pd.Timestamp(tx["date"])] += float(tx["shares"]) * float(tx["price"])
+        if tx.get("type", "buy") != "sell":
+            deposits[pd.Timestamp(tx["date"])] += float(tx["shares"]) * float(tx["price"])
     cum_deposits = deposits.cumsum()
 
     # Time-Weighted Return via Modified-Dietz sub-period chaining
@@ -142,10 +146,11 @@ def build_master_history(portfolio_json_str: str, prices_json_str: str) -> dict:
         "nasdaq":          nasdaq_s.reindex(full_idx, method="ffill"),
     }, index=full_idx)
 
-    # Full-history IRR (used by MWR mode when scope == ALL)
+    # Full-history IRR (used by MWR mode when scope == ALL) — buys only
     sorted_txs = sorted(pdata, key=lambda x: x["date"])
-    irr_cf = [-float(tx["shares"]) * float(tx["price"]) for tx in sorted_txs]
-    irr_dt = [datetime.strptime(tx["date"], "%Y-%m-%d").date() for tx in sorted_txs]
+    buy_txs = [tx for tx in sorted_txs if tx.get("type", "buy") != "sell"]
+    irr_cf = [-float(tx["shares"]) * float(tx["price"]) for tx in buy_txs]
+    irr_dt = [datetime.strptime(tx["date"], "%Y-%m-%d").date() for tx in buy_txs]
     irr_cf.append(float(pv[-1]))
     irr_dt.append(today)
 
@@ -171,6 +176,8 @@ def compute_scoped_irr(
         mwr_dt.append(scope_start_date)
 
     for tx in portfolio_data:
+        if tx.get("type", "buy") == "sell":
+            continue
         tx_dt = datetime.strptime(tx["date"], "%Y-%m-%d").date()
         if tx_dt >= scope_start_date:
             mwr_cf.append(-float(tx["shares"]) * float(tx["price"]))

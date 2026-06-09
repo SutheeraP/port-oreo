@@ -1,5 +1,6 @@
 import json
 import numpy as np
+from collections import deque
 from datetime import date as date_type, datetime, timedelta, timezone
 from pathlib import Path
 from perf_engine import build_master_history, compute_scoped_irr
@@ -38,30 +39,48 @@ def tx_split_factor(tx_date: str, history: list) -> float:
 
 
 def build_holdings(portfolio, prices, split_history, sectors):
-    rows = {}
-    for tx in portfolio:
-        t, shares = tx["ticker"], float(tx["shares"])
-        sf = tx_split_factor(tx["date"], split_history.get(t, []))
-        if t not in rows:
-            rows[t] = {"shares": 0.0, "cost": 0.0}
-        rows[t]["shares"] += shares * sf
-        rows[t]["cost"]   += shares * float(tx["price"])
+    # FIFO lot tracking: deque of (split-adjusted shares, original cost of lot)
+    lots: dict[str, deque] = {}
+    for tx in sorted(portfolio, key=lambda x: x["date"]):
+        t      = tx["ticker"]
+        shares = float(tx["shares"])
+        sf     = tx_split_factor(tx["date"], split_history.get(t, []))
+        adj    = shares * sf
+        cost   = shares * float(tx["price"])
+        if t not in lots:
+            lots[t] = deque()
+        if tx.get("type", "buy") == "sell":
+            remaining = adj
+            while remaining > 1e-10 and lots[t]:
+                lot_adj, lot_cost = lots[t][0]
+                if lot_adj <= remaining + 1e-10:
+                    remaining -= lot_adj
+                    lots[t].popleft()
+                else:
+                    fraction = remaining / lot_adj
+                    lots[t][0] = (lot_adj - remaining, lot_cost * (1 - fraction))
+                    remaining = 0.0
+        else:
+            lots[t].append((adj, cost))
 
     records = []
-    for t, r in rows.items():
+    for t, lot_deque in lots.items():
+        total_shares = sum(l[0] for l in lot_deque)
+        if total_shares < 1e-10:
+            continue
+        total_cost = sum(l[1] for l in lot_deque)
         cp  = prices.get(t)
-        adj = r["shares"]
-        cv  = adj * cp if cp else None
-        avg = r["cost"] / adj if adj else 0
-        pnl = cv - r["cost"] if cv is not None else None
-        pct = pnl / r["cost"] * 100 if pnl is not None and r["cost"] else None
+        cv  = total_shares * cp if cp else None
+        avg = total_cost / total_shares if total_shares else 0
+        pnl = cv - total_cost if cv is not None else None
+        pct = pnl / total_cost * 100 if pnl is not None and total_cost else None
         records.append({
             "Ticker":   t,
             "Sector":   sectors.get(t, "Other"),
-            "Shares":   round(adj, 4),
+            "Shares":   round(total_shares, 4),
             "Avg Cost": round(avg, 2),
             "Price":    cp,
-            "Cost":     round(r["cost"], 2),
+            "Cost":     round(total_cost, 2),
             "Value":    round(cv, 2) if cv else None,
             "P&L $":    round(pnl, 2) if pnl is not None else None,
             "P&L %":    round(pct, 2) if pct is not None else None,

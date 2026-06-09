@@ -9,8 +9,9 @@ Follow these steps exactly:
 1. Use Bash to list all PNG files in `slips/$ARGUMENTS/`.
    Command: `ls slips/$ARGUMENTS/*.PNG slips/$ARGUMENTS/*.png 2>/dev/null`
 
-2. For each PNG file, use the Read tool to view the image. Extract these 6 fields:
-   - `ticker`: the stock symbol from the "Buy XXXX" header
+2. For each PNG file, use the Read tool to view the image. Extract these 7 fields:
+   - `ticker`: the stock symbol from the header (e.g. "Buy XXXX" or "Sell XXXX")
+   - `type`: `"buy"` if the header says "Buy XXXX", `"sell"` if it says "Sell XXXX"
    - `exchange`: the exchange name shown in the badge (e.g. "NYSE Arca", "NASDAQ", "NYSE")
    - `price`: the number from "Executed Price" row (USD, digits and decimal only, no currency symbol)
    - `shares`: the number from "Shares" row (digits and decimal only)
@@ -20,7 +21,7 @@ Follow these steps exactly:
 
 3. Read portfolio.json using the Read tool.
 
-4. Parse the JSON array. For each extracted entry, check if an entry with the same `ticker`, `date`, and `shares` already exists. Skip duplicates.
+4. Parse the JSON array. For each extracted entry, check if an entry with the same `ticker`, `type`, `date`, and `shares` already exists. Skip duplicates.
 
 5. Append only the new entries to the array and write the updated array back to portfolio.json using the Write tool. Preserve the existing entries exactly — only add to the end.
 
