@@ -73,12 +73,14 @@ with b_col:
                 st.error(str(e))
 
 # ── metrics ───────────────────────────────────────────────────────────────────
-c1, c2, c3, c4, c5 = st.columns(5)
+c1, c2, c3 = st.columns(3)
 c1.metric("Total Value", f"${total_value:,.2f}", border=True, height="stretch")
 c2.metric("Invested",    f"${total_cost:,.2f}", border=True, height="stretch")
-c3.metric("Total P&L",  f"${total_pnl:+,.2f}", f"{total_pnl_pct:+.2f}%", border=True, height="stretch")
-c4.metric("Positions",  len(df), f"best: {best_row['Ticker']} {best_row['P&L %']:+.1f}%", border=True, height="stretch")
-st.metric("Tax P&L (THB)", f"฿{tax_summary['realized_pnl_thb']:+,.2f}",
+c3.metric("Positions",  len(df), f"best: {best_row['Ticker']} {best_row['P&L %']:+.1f}%", border=True, height="stretch")
+
+c4, c5 = st.columns(2)
+c4.metric("Total P&L",  f"${total_pnl:+,.2f}", f"{total_pnl_pct:+.2f}%", border=True, height="stretch")
+c5.metric("Tax P&L (THB)", f"฿{tax_summary['realized_pnl_thb']:+,.2f}",
           f"realized · {tax_summary['total_proceeds_thb']:,.0f} proceeds", border=True, height="stretch")
 
 st.divider()

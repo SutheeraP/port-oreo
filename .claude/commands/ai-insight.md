@@ -98,29 +98,29 @@ print(json.dumps({
 <title>Portfolio Insights — {DATE}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #e2e8f0; padding: 2rem; line-height: 1.6; }
-  h1 { font-size: 1.6rem; color: #38bdf8; margin-bottom: 0.25rem; }
-  .date { color: #64748b; font-size: 0.85rem; margin-bottom: 2rem; }
-  h2 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 1rem; }
-  .card { background: #1e293b; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #334155; }
-  .commentary { font-size: 0.9rem; color: #cbd5e1; line-height: 1.7; }
-  .commentary p { margin-bottom: 0.6rem; }
+  body { font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; color: #e2e8f0; padding: 1rem 0 2rem; line-height: 1.7; font-weight: 300; }
+  h1 { font-size: 1.4rem; color: #615fff; margin-bottom: 0.2rem; font-weight: 400; }
+  .date { color: #314158; font-size: 0.8rem; margin-bottom: 2.5rem; }
+  h2 { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #314158; margin-bottom: 1rem; }
+  .card { border-top: 1px solid #314158; padding: 1.5rem 0; margin-bottom: 0; }
+  .commentary { font-size: 0.9rem; color: #e2e8f0; line-height: 1.8; }
+  .commentary p { margin-bottom: 0.75rem; }
   .commentary p:last-child { margin-bottom: 0; }
-  .stock-block { margin-bottom: 1.2rem; padding-bottom: 1.2rem; border-bottom: 1px solid #334155; }
+  .stock-block { margin-bottom: 1.4rem; padding-bottom: 1.4rem; border-bottom: 1px solid #314158; }
   .stock-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-  .position-label { font-weight: 700; color: #38bdf8; font-size: 1rem; margin-bottom: 0.5rem; }
+  .position-label { font-weight: 400; color: #615fff; font-size: 0.95rem; margin-bottom: 0.6rem; letter-spacing: 0.01em; }
   .pos { color: #4ade80; font-weight: 600; }
   .neg { color: #f87171; font-weight: 600; }
-  ul { padding-left: 1.2rem; }
-  ul li { color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.4rem; line-height: 1.6; }
-  .steps ol { padding-left: 1.2rem; }
-  .steps ol li { color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.6rem; line-height: 1.6; }
-  .snapshot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; }
-  .snapshot-item { background: #0f172a; border-radius: 8px; padding: 0.9rem 1rem; }
-  .snapshot-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
-  .snapshot-value { font-size: 0.9rem; color: #f1f5f9; line-height: 1.5; }
-  .footer { font-size: 0.75rem; color: #475569; }
-  code { background: #0f172a; color: #38bdf8; padding: 1px 5px; border-radius: 3px; font-family: monospace; }
+  ul { padding-left: 0; list-style: none; }
+  ul li { color: #e2e8f0; font-size: 0.875rem; margin-bottom: 0.5rem; line-height: 1.7; padding-left: 0.75rem; border-left: 2px solid #314158; }
+  .steps ol { padding-left: 0; list-style: none; counter-reset: action-counter; }
+  .steps ol li { color: #e2e8f0; font-size: 0.875rem; margin-bottom: 0.75rem; line-height: 1.7; padding-left: 1.5rem; position: relative; counter-increment: action-counter; }
+  .steps ol li::before { content: counter(action-counter); position: absolute; left: 0; color: #615fff; font-weight: 600; font-size: 0.8rem; }
+  .snapshot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; }
+  .snapshot-item { background: #162030; border-radius: 6px; padding: 1rem; border: 1px solid #314158; }
+  .snapshot-label { font-size: 0.65rem; color: #314158; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; font-weight: 600; }
+  .snapshot-value { font-size: 0.875rem; color: #e2e8f0; line-height: 1.5; }
+  code { background: #162030; color: #615fff; padding: 1px 5px; border-radius: 3px; font-family: monospace; }
 </style>
 </head>
 <body>
