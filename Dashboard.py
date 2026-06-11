@@ -1,9 +1,14 @@
 import json
 import numpy as np
-from collections import deque
 from datetime import date as date_type, datetime, timedelta, timezone
 from pathlib import Path
-from perf_engine import build_master_history, compute_scoped_irr, compute_tax_summary
+from perf_engine import (
+    build_master_history,
+    build_holdings,
+    compute_scoped_irr,
+    compute_tax_summary,
+    tx_split_factor,
+)
 
 import fetch_prices
 import pandas as pd
@@ -29,63 +34,6 @@ def load_data():
     prices_raw = json.loads(PRICES.read_text())
     return portfolio, prices_raw
 
-
-def tx_split_factor(tx_date: str, history: list) -> float:
-    factor = 1.0
-    for s in history:
-        if s["date"] > tx_date:
-            factor *= s["ratio"]
-    return factor
-
-
-def build_holdings(portfolio, prices, split_history, sectors):
-    # FIFO lot tracking: deque of (split-adjusted shares, original cost of lot)
-    lots: dict[str, deque] = {}
-    for tx in sorted(portfolio, key=lambda x: x["date"]):
-        t      = tx["ticker"]
-        shares = float(tx["shares"])
-        sf     = tx_split_factor(tx["date"], split_history.get(t, []))
-        adj    = shares * sf
-        cost   = shares * float(tx["price"])
-        if t not in lots:
-            lots[t] = deque()
-        if tx.get("type", "buy") == "sell":
-            remaining = adj
-            while remaining > 1e-10 and lots[t]:
-                lot_adj, lot_cost = lots[t][0]
-                if lot_adj <= remaining + 1e-10:
-                    remaining -= lot_adj
-                    lots[t].popleft()
-                else:
-                    fraction = remaining / lot_adj
-                    lots[t][0] = (lot_adj - remaining, lot_cost * (1 - fraction))
-                    remaining = 0.0
-        else:
-            lots[t].append((adj, cost))
-
-    records = []
-    for t, lot_deque in lots.items():
-        total_shares = sum(l[0] for l in lot_deque)
-        if total_shares < 1e-10:
-            continue
-        total_cost = sum(l[1] for l in lot_deque)
-        cp  = prices.get(t)
-        cv  = total_shares * cp if cp else None
-        avg = total_cost / total_shares if total_shares else 0
-        pnl = cv - total_cost if cv is not None else None
-        pct = pnl / total_cost * 100 if pnl is not None and total_cost else None
-        records.append({
-            "Ticker":   t,
-            "Sector":   sectors.get(t, "Other"),
-            "Shares":   round(total_shares, 4),
-            "Avg Cost": round(avg, 2),
-            "Price":    cp,
-            "Cost":     round(total_cost, 2),
-            "Value":    round(cv, 2) if cv else None,
-            "P&L $":    round(pnl, 2) if pnl is not None else None,
-            "P&L %":    round(pct, 2) if pct is not None else None,
-        })
-    return pd.DataFrame(records).sort_values("Value", ascending=False)
 
 # ── load ──────────────────────────────────────────────────────────────────────
 portfolio_data, prices_raw = load_data()

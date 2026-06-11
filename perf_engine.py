@@ -8,6 +8,7 @@ Public API used by Dashboard.py:
     get_historical_index_prices(...)
 """
 import json
+from collections import deque
 from datetime import date as date_type, datetime, timedelta
 
 import numpy as np
@@ -47,6 +48,78 @@ def _xirr(cashflows: list, dates: list) -> float:
         return r
     except Exception:
         return 0.0
+
+
+# ── pure helpers ─────────────────────────────────────────────────────────────
+
+def tx_split_factor(tx_date: str, history: list) -> float:
+    """Cumulative split ratio applied to shares purchased on tx_date.
+
+    Multiplies ratios for every split whose date is strictly after tx_date,
+    so pre-split share counts are converted to post-split equivalents.
+    """
+    factor = 1.0
+    for s in history:
+        if s["date"] > tx_date:
+            factor *= s["ratio"]
+    return factor
+
+
+def build_holdings(portfolio: list, prices: dict, split_history: dict, sectors: dict) -> pd.DataFrame:
+    """FIFO lot tracking → per-ticker holdings DataFrame.
+
+    Returns columns: Ticker, Sector, Shares, Avg Cost, Price, Cost, Value, P&L $, P&L %
+    Sorted by Value descending. Fully-exited positions are excluded.
+    """
+    lots: dict[str, deque] = {}
+    for tx in sorted(portfolio, key=lambda x: x["date"]):
+        t      = tx["ticker"]
+        shares = float(tx["shares"])
+        sf     = tx_split_factor(tx["date"], split_history.get(t, []))
+        adj    = shares * sf
+        cost   = shares * float(tx["price"])
+        if t not in lots:
+            lots[t] = deque()
+        if tx.get("type", "buy") == "sell":
+            remaining = adj
+            while remaining > 1e-10 and lots[t]:
+                lot_adj, lot_cost = lots[t][0]
+                if lot_adj <= remaining + 1e-10:
+                    remaining -= lot_adj
+                    lots[t].popleft()
+                else:
+                    fraction = remaining / lot_adj
+                    lots[t][0] = (lot_adj - remaining, lot_cost * (1 - fraction))
+                    remaining = 0.0
+        else:
+            lots[t].append((adj, cost))
+
+    records = []
+    for t, lot_deque in lots.items():
+        total_shares = sum(l[0] for l in lot_deque)
+        if total_shares < 1e-10:
+            continue
+        total_cost = sum(l[1] for l in lot_deque)
+        cp  = prices.get(t)
+        cv  = total_shares * cp if cp else None
+        avg = total_cost / total_shares if total_shares else 0
+        pnl = cv - total_cost if cv is not None else None
+        pct = pnl / total_cost * 100 if pnl is not None and total_cost else None
+        records.append({
+            "Ticker":   t,
+            "Sector":   sectors.get(t, "Other"),
+            "Shares":   round(total_shares, 4),
+            "Avg Cost": round(avg, 2),
+            "Price":    cp,
+            "Cost":     round(total_cost, 2),
+            "Value":    round(cv, 2) if cv else None,
+            "P&L $":    round(pnl, 2) if pnl is not None else None,
+            "P&L %":    round(pct, 2) if pct is not None else None,
+        })
+    if not records:
+        cols = ["Ticker", "Sector", "Shares", "Avg Cost", "Price", "Cost", "Value", "P&L $", "P&L %"]
+        return pd.DataFrame(columns=cols)
+    return pd.DataFrame(records).sort_values("Value", ascending=False)
 
 
 # ── public price fetchers (swap bodies for real API calls) ────────────────────
@@ -109,12 +182,9 @@ def build_master_history(portfolio_json_str: str, prices_json_str: str) -> dict:
         ticker_txs  = [tx for tx in pdata if tx["ticker"] == ticker]
         shares_held = np.zeros(len(full_idx))
         for tx in ticker_txs:
-            tx_pos    = full_idx.searchsorted(pd.Timestamp(tx["date"]))
-            sf        = 1.0
-            for s in splits_t:
-                if s["date"] > tx["date"]:
-                    sf *= s["ratio"]
-            delta = float(tx["shares"]) * sf
+            tx_pos = full_idx.searchsorted(pd.Timestamp(tx["date"]))
+            sf     = tx_split_factor(tx["date"], splits_t)
+            delta  = float(tx["shares"]) * sf
             if tx.get("type", "buy") == "sell":
                 delta = -delta
             shares_held[tx_pos:] += delta
