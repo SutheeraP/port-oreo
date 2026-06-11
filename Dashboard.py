@@ -236,7 +236,8 @@ left, right = st.columns([1, 1], gap="large")
 st.subheader("Holdings")
 st.markdown("<style>.stDataFrame * { font-size: 14px !important; }</style>", unsafe_allow_html=True)
 
-display_cols = ["Ticker", "Sector", "Shares", "Avg Cost", "Price", "Value", "P&L $", "P&L %"]
+df["Weight %"] = df["Value"] / total_value * 100
+display_cols = ["Ticker", "Sector", "Shares", "Avg Cost", "Price", "Value", "Weight %", "P&L $", "P&L %"]
 
 def _color_pnl(val):
     if isinstance(val, (int, float)) and val > 0:
@@ -248,15 +249,22 @@ def _color_pnl(val):
 styled = (
     df[display_cols].style
     .format({
-        "Avg Cost": "${:,.2f}",
-        "Price":    "${:,.2f}",
-        "Value":    "${:,.2f}",
-        "P&L $":    "${:+,.2f}",
-        "P&L %":    "{:+.2f}%",
+        "Shares":    "{:,.4f}",
+        "Avg Cost":  "${:,.2f}",
+        "Price":     "${:,.2f}",
+        "Value":     "${:,.2f}",
+        "Weight %":  "{:.1f}%",
+        "P&L $":     "${:+,.2f}",
+        "P&L %":     "{:+.2f}%",
     }, na_rep="—")
     .map(_color_pnl, subset=["P&L $", "P&L %"])
 )
-st.dataframe(styled,  width="stretch", hide_index=True)
+st.dataframe(
+    styled,
+    width="stretch",
+    hide_index=True,
+    column_order=["Ticker", "Weight %",  "Avg Cost", "Price", "Value",  "P&L $", "P&L %"]
+)
 
 with left:
     st.subheader("Allocation")

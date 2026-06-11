@@ -10,6 +10,6 @@ INSIGHTS = Path("insights.html")
 st.subheader("AI Insights")
 
 if INSIGHTS.exists():
-    components.html(INSIGHTS.read_text(), height=1800, scrolling=True)
+    components.html(INSIGHTS.read_text(), height=700, scrolling=True)
 else:
     st.info("No insights yet. Ask Claude to analyze `portfolio.json` + `prices.json` and write to `insights.html`.")
