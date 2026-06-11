@@ -8,7 +8,12 @@ Analyze the user's portfolio and write a fresh `insights.html`.
 
 1. Read `portfolio.json` and `prices.json`.
 
-2. Run this Python script via Bash to compute accurate position metrics:
+2. Use WebSearch to gather current context for each active holding and the broader market. Run these searches:
+   - `"S&P 500 performance YTD 2026"` — benchmark comparison
+   - `"US market macro outlook 2026"` — Current Situation context
+   - For each active ticker in the portfolio: `"{TICKER} stock news earnings 2026"` — one search per ticker
+
+3. Run this Python script via Bash to compute accurate position metrics:
 
 ```python
 import json
@@ -82,7 +87,7 @@ print(json.dumps({
 }, indent=2))
 ```
 
-3. Use the computed numbers to write `insights.html` with **today's date** in the title. Use this HTML structure as your template — fill in all placeholder values with real computed data:
+4. Use the computed numbers and web search results to write `insights.html` with **today's date** in the title. Use this HTML structure as your template — fill in all placeholder values with real, substantive analysis:
 
 ```html
 <!DOCTYPE html>
@@ -98,34 +103,22 @@ print(json.dumps({
   .date { color: #64748b; font-size: 0.85rem; margin-bottom: 2rem; }
   h2 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 1rem; }
   .card { background: #1e293b; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #334155; }
-  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; }
-  .stat { background: #0f172a; border-radius: 8px; padding: 1rem; text-align: center; }
-  .stat-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.4rem; }
-  .stat-value { font-size: 1.4rem; font-weight: 700; color: #f1f5f9; }
-  .stat-value.pos { color: #4ade80; }
-  .stat-value.neg { color: #f87171; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-  th { color: #64748b; text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid #334155; font-weight: 500; font-size: 0.75rem; text-transform: uppercase; }
-  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #1e293b; }
-  tr:last-child td { border-bottom: none; }
-  .ticker { font-weight: 700; color: #38bdf8; }
+  .commentary { font-size: 0.9rem; color: #cbd5e1; line-height: 1.7; }
+  .commentary p { margin-bottom: 0.6rem; }
+  .commentary p:last-child { margin-bottom: 0; }
+  .stock-block { margin-bottom: 1.2rem; padding-bottom: 1.2rem; border-bottom: 1px solid #334155; }
+  .stock-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .position-label { font-weight: 700; color: #38bdf8; font-size: 1rem; margin-bottom: 0.5rem; }
   .pos { color: #4ade80; font-weight: 600; }
   .neg { color: #f87171; font-weight: 600; }
-  .sector-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; }
-  .sector-card { background: #0f172a; border-radius: 8px; padding: 0.9rem 1rem; border-left: 3px solid #334155; }
-  .sector-card.risk { border-left-color: #f59e0b; }
-  .sector-name { font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.25rem; }
-  .sector-alloc { font-size: 1.2rem; font-weight: 700; color: #f1f5f9; }
-  .sector-tickers { font-size: 0.72rem; color: #64748b; margin-top: 0.2rem; }
-  .risk-badge { display: inline-block; background: #78350f; color: #fbbf24; padding: 1px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; margin-left: 6px; }
-  .commentary { font-size: 0.9rem; color: #cbd5e1; line-height: 1.7; }
-  .winner-block, .loser-block { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #334155; }
-  .winner-block:last-child, .loser-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-  .position-label { font-weight: 700; color: #38bdf8; margin-bottom: 0.3rem; }
   ul { padding-left: 1.2rem; }
-  ul li { color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.4rem; }
+  ul li { color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.4rem; line-height: 1.6; }
   .steps ol { padding-left: 1.2rem; }
-  .steps ol li { color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.6rem; }
+  .steps ol li { color: #cbd5e1; font-size: 0.9rem; margin-bottom: 0.6rem; line-height: 1.6; }
+  .snapshot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; }
+  .snapshot-item { background: #0f172a; border-radius: 8px; padding: 0.9rem 1rem; }
+  .snapshot-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
+  .snapshot-value { font-size: 0.9rem; color: #f1f5f9; line-height: 1.5; }
   .footer { font-size: 0.75rem; color: #475569; }
   code { background: #0f172a; color: #38bdf8; padding: 1px 5px; border-radius: 3px; font-family: monospace; }
 </style>
@@ -136,77 +129,43 @@ print(json.dumps({
 <div class="date">{DATE}</div>
 
 <div class="card">
-  <h2>Portfolio Summary</h2>
-  <div class="summary-grid">
-    <div class="stat">
-      <div class="stat-label">Positions</div>
-      <div class="stat-value">{TOTAL_POSITIONS}</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Invested (USD)</div>
-      <div class="stat-value">${TOTAL_INVESTED}</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Invested (THB)</div>
-      <div class="stat-value">&#3647;{TOTAL_THB}</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Current Value</div>
-      <div class="stat-value">${TOTAL_VALUE}</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Overall P&amp;L</div>
-      <div class="stat-value {PNL_CLASS}">{PNL_SIGN}${TOTAL_PNL} ({PNL_SIGN}{TOTAL_PNL_PCT}%)</div>
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <h2>Positions</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Ticker</th><th>Shares</th><th>Avg Cost</th><th>Price</th>
-        <th>Invested</th><th>Value</th><th>P&amp;L (USD)</th><th>P&amp;L %</th><th>Alloc %</th>
-      </tr>
-    </thead>
-    <tbody>
-      {POSITIONS_ROWS}
-    </tbody>
-  </table>
-</div>
-
-<div class="card">
-  <h2>Sector Breakdown</h2>
-  <div class="sector-grid">
-    {SECTOR_CARDS}
-  </div>
-</div>
-
-<div class="card">
-  <h2>Winners &amp; Underperformers</h2>
+  <h2>Current Situation</h2>
   <div class="commentary">
-    {WINNERS_AND_UNDERPERFORMERS}
+    {CURRENT_SITUATION}
   </div>
 </div>
 
 <div class="card">
-  <h2>Key Risks</h2>
-  <ul>
-    {KEY_RISKS}
-  </ul>
+  <h2>Individual Stock Deep Dive</h2>
+  {STOCK_BLOCKS}
 </div>
 
 <div class="card steps">
-  <h2>Suggested Next Steps</h2>
+  <h2>Action Items</h2>
   <ol>
-    {NEXT_STEPS}
+    {ACTION_ITEMS}
   </ol>
 </div>
 
 <div class="card">
-  <div class="footer">
-    Prices fetched: {FETCHED_AT} &nbsp;&middot;&nbsp; To refresh: run <code>python3 fetch_prices.py</code> then <code>/ai-insight</code>
+  <h2>Portfolio Snapshot</h2>
+  <div class="snapshot-grid">
+    <div class="snapshot-item">
+      <div class="snapshot-label">vs Benchmark</div>
+      <div class="snapshot-value">{PORTFOLIO_VS_BENCHMARK}</div>
+    </div>
+    <div class="snapshot-item">
+      <div class="snapshot-label">Top Performers</div>
+      <div class="snapshot-value">{TOP_PERFORMERS}</div>
+    </div>
+    <div class="snapshot-item">
+      <div class="snapshot-label">Laggards</div>
+      <div class="snapshot-value">{WORST_PERFORMERS}</div>
+    </div>
+    <div class="snapshot-item">
+      <div class="snapshot-label">Concentration Risk</div>
+      <div class="snapshot-value">{CONCENTRATION_NOTE}</div>
+    </div>
   </div>
 </div>
 
@@ -216,16 +175,31 @@ print(json.dumps({
 
 **Filling in placeholders:**
 
-- `{DATE}` — today's date (e.g. "June 6, 2026")
-- `{TOTAL_POSITIONS}` — count of tickers
-- `{TOTAL_INVESTED}`, `{TOTAL_VALUE}`, `{TOTAL_THB}`, `{TOTAL_PNL}`, `{TOTAL_PNL_PCT}` — computed totals
-- `{PNL_CLASS}` — `pos` if total P&L > 0, else `neg`
-- `{PNL_SIGN}` — `+` if positive, empty string if negative (the number carries its own `-`)
-- `{POSITIONS_ROWS}` — one `<tr>` per position: apply `class="pos"` to P&L cells for gains, `class="neg"` for losses; `class="ticker"` on ticker cell; prefix P&L values with `+` for gains
-- `{SECTOR_CARDS}` — one `.sector-card` div per group; add `class="sector-card risk"` and `<span class="risk-badge">Concentration Risk</span>` if group allocation > 50%; sector tickers: Broad ETFs (VOO, VGT), Tech (DDOG, GOOGL, MSFT), Defense/GovTech (KTOS, AXON), Healthcare (UNH)
-- `{WINNERS_AND_UNDERPERFORMERS}` — `.winner-block` / `.loser-block` divs with `.position-label` header and 2–3 sentence commentary
-- `{KEY_RISKS}` — 3 `<li>` items
-- `{NEXT_STEPS}` — 3–5 `<li>` items with concrete actions
+- `{DATE}` — today's date (e.g. "June 10, 2026")
 - `{FETCHED_AT}` — timestamp from prices.json
 
-4. Write the complete HTML to `insights.html`, overwriting any previous version.
+- `{CURRENT_SITUATION}` — 3–5 sentences of prose covering: what is happening in the broader market or macro environment right now that is relevant to these holdings. Mention any notable sector trends, economic events, Fed policy, geopolitical factors, or earnings season context. Draw on web search results.
+
+- `{STOCK_BLOCKS}` — one `.stock-block` div per active holding, sorted by P&L % descending. Each block:
+```html
+<div class="stock-block">
+  <div class="position-label">TICKER &nbsp;<span class="pos|neg">+X.X% · $X,XXX</span></div>
+  <ul>
+    <li><strong>Earnings:</strong> [recent results or next expected date and what to watch for]</li>
+    <li><strong>Price action:</strong> [is it near a key level, breaking out, consolidating, or breaking down?]</li>
+    <li><strong>News / sentiment:</strong> [any analyst upgrades/downgrades, notable news, sentiment shift]</li>
+    <li><strong>Thesis intact?</strong> [yes/no/watch — brief reason]</li>
+    <li><strong>Red flags:</strong> [any concerns, or "None at this time"]</li>
+  </ul>
+</div>
+```
+Use `class="pos"` on the span for positive P&L, `class="neg"` for negative. Prefix positive P&L with `+`.
+
+- `{ACTION_ITEMS}` — 3–5 `<li>` items with concrete, specific actions: which ticker, what to do, and why. Flag urgency where relevant (e.g. "Before next earnings on X date…").
+
+- `{PORTFOLIO_VS_BENCHMARK}` — one-line comparison, e.g. "Portfolio +12.3% vs S&P 500 +8.1% YTD — outperforming by ~4.2 pp"
+- `{TOP_PERFORMERS}` — inline list of top 2–3 winners with their P&L %, e.g. "UNH +43.2%, VGT +19.7%"
+- `{WORST_PERFORMERS}` — inline list of bottom 2–3 laggards with their P&L %, e.g. "KTOS −32.2%, MSFT −0.1%"
+- `{CONCENTRATION_NOTE}` — one sentence flagging any sector or single-name concentration worth noting, e.g. "Tech exposure (VGT + GOOGL + MSFT + DDOG) is ~65% of portfolio"
+
+5. Write the complete HTML to `insights.html`, overwriting any previous version.
