@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portfolio Insights — {DATE}</title>
+<title>สรุปพอร์ตการลงทุน — {DATE}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap');
 
   :root {
     --background: #fafafa;
@@ -31,10 +31,10 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--background);
     color: var(--foreground);
-    line-height: 1.5;
+    line-height: 1.65;
     font-size: 14px;
     padding: 2.5rem 1.5rem 4rem;
     -webkit-font-smoothing: antialiased;
@@ -194,6 +194,22 @@
   .detail-block p { font-size: 0.82rem; color: #3f3f46; line-height: 1.55; }
   .detail-block.flag p { color: var(--destructive); }
 
+  /* ---------- DCA plan ---------- */
+  .dca-card { padding: 1rem 1.1rem 1.1rem; }
+  .dca-stocks { display: flex; flex-direction: column; gap: 0.9rem; }
+  .dca-stock-head { display: flex; align-items: baseline; gap: 0.55rem; margin-bottom: 0.2rem; }
+  .dca-stock-pct { font-weight: 700; font-size: 0.9rem; min-width: 2.6rem; font-variant-numeric: tabular-nums; }
+  .dca-stock-ticker { font-weight: 700; font-size: 0.9rem; }
+  .dca-stock-reason { font-size: 0.84rem; color: #3f3f46; padding-left: calc(2.6rem + 0.55rem); }
+  .dca-cash-note {
+    margin-top: 0.75rem;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.85rem;
+    color: #3f3f46;
+  }
+  .dca-cash-note p { margin-bottom: 0.5rem; }
+  .dca-cash-note p:last-child { margin-bottom: 0; }
+
   /* ---------- Action items ---------- */
   .action-list { display: flex; flex-direction: column; }
   .action-item {
@@ -231,18 +247,47 @@
 <body>
 <div class="wrap">
 
+  <!--
+  Placeholder reference (all placeholders below appear exactly once).
+  These comments are instructions for the agent filling this template — delete every
+  comment when writing the final insights.html, so none of this leaks into the output.
+
+  {DATE}             today's date, e.g. "14 กรกฎาคม 2569" or "July 14, 2026"
+  {FETCHED_AT_TIME}   time portion of prices.json's fetched_at, e.g. "14:51 UTC"
+  {TOTAL_PNL_PCT}     e.g. "+13.2%", prefix + if positive
+  {BENCHMARK_YTD_PCT} S&P 500 YTD return from web search, e.g. "+9.8%"
+  {PERF_PILL_CLASS}   "" if total_pnl_pct >= 0, "neg" if negative
+  -->
+
   <header>
     <div>
-      <h1>Portfolio AI Insights</h1>
-      <div class="subdate">{DATE} · prices as of {FETCHED_AT_TIME}</div>
+      <h1>สรุปพอร์ตการลงทุน</h1>
+      <div class="subdate">{DATE} · ราคาล่าสุดเมื่อ {FETCHED_AT_TIME}</div>
     </div>
-    <div class="perf-pill {PERF_PILL_CLASS}">{TOTAL_PNL_PCT} since inception <span class="muted">· vs S&P 500 {BENCHMARK_YTD_PCT} YTD</span></div>
+    <div class="perf-pill {PERF_PILL_CLASS}">{TOTAL_PNL_PCT} ตั้งแต่เริ่มลงทุน <span class="muted">· เทียบกับ S&P 500 {BENCHMARK_YTD_PCT} ตั้งแต่ต้นปี</span></div>
   </header>
 
+  <!--
+  {STAT_CARDS}: exactly 4 .stat-card divs, in order: 1) top performer 2) biggest laggard
+  (smallest gainer instead, if every position is positive) 3) concentration stat (e.g. ETF
+  vs single-stock weight) 4) thematic exposure stat. Thai labels; success/destructive color
+  only on cards 1-2 by sign, cards 3-4 uncolored. Pattern:
+  <div class="stat-card">
+    <div class="stat-label">หุ้นกำไรดีสุด</div>
+    <div class="stat-value" style="color:var(--success)">UNH +48.6%</div>
+    <div class="stat-sub">รายงานผลใน 2 วัน</div>
+  </div>
+  -->
   <div class="stat-grid">
     {STAT_CARDS}
   </div>
 
+  <!--
+  {MARKET_CONTEXT_SUMMARY}: one Thai line naming the dominant market narrative, e.g.
+  "ภาพรวมตลาด — หุ้น AI นำตลาดขึ้น แต่ความเสี่ยงก็สูงตาม"
+  {MARKET_CONTEXT_BODY}: 2-3 <p> tags of simple Thai prose, grounded in web search and
+  relevant to these specific holdings (not generic commentary).
+  -->
   <section>
     <details class="panel">
       <summary class="context-toggle">
@@ -255,9 +300,19 @@
     </details>
   </section>
 
+  <!--
+  {TIMELINE_ITEMS}: one .tl-item per holding with a known/estimated next earnings date,
+  chronological (soonest first). Omit ETFs/positions with no single print unless notable.
+  Add class "today" to the item whose date equals {DATE} (signature red marker). Pattern:
+  <div class="tl-item">
+    <div class="tl-dot"></div>
+    <div class="tl-date">Jul 28</div>
+    <div class="tl-ticker">GOOGL</div>
+  </div>
+  -->
   <section>
     <div class="section-head">
-      <div class="section-title">Upcoming catalysts</div>
+      <div class="section-title">กิจกรรมสำคัญที่จะถึง</div>
     </div>
     <div class="panel timeline-panel">
       <div class="timeline">
@@ -266,19 +321,87 @@
     </div>
   </section>
 
+  <!--
+  {HOLDINGS}: one .holding block per active position, sorted by pnl_pct descending. Pattern:
+  <div class="holding">
+    <details>
+      <summary class="holding-row">
+        <div><div class="ticker">UNH</div><div class="cost-basis">$54</div></div>
+        <div class="ret pos">▲ 48.6%</div>
+        <div class="badge yes">แนวคิดยังดีอยู่</div>
+        <div class="next-earn">รายงานผล <strong>16 ก.ค.</strong></div>
+        <span class="chev">▶</span>
+      </summary>
+      <div class="holding-detail">
+        <div class="detail-block"><h4>ผลประกอบการ</h4><p>...</p></div>
+        <div class="detail-block"><h4>ความเคลื่อนไหวราคา</h4><p>...</p></div>
+        <div class="detail-block"><h4>ข่าวและกระแส</h4><p>...</p></div>
+        <div class="detail-block flag"><h4>จุดที่ต้องระวัง</h4><p>...</p></div>
+      </div>
+    </details>
+  </div>
+  Notes: cost-basis = rounded avg_cost. .ret is "pos"+▲ if pnl_pct >= 0, "neg"+▼ if negative.
+  .badge: yes = "แนวคิดยังดีอยู่" (thesis intact), watch = "เฝ้าดูก่อน" (mixed signals /
+  upcoming catalyst / early position), no = "สัญญาณเปลี่ยนไป" (clear deterioration, use
+  sparingly). .next-earn is "รายงานผล <strong>{date}</strong>" or, for ETFs, "ยังไม่มีกำหนด"
+  / "อิงดัชนี" / "อิงหุ้นในพอร์ต". The 4 detail-blocks are always in this order (ผลประกอบการ,
+  ความเคลื่อนไหวราคา, ข่าวและกระแส, จุดที่ต้องระวัง), 1-2 simple Thai sentences each, grounded
+  in web search + the P&L numbers; write "ยังไม่มีจุดที่น่ากังวล" if nothing to flag.
+  -->
   <section>
     <div class="section-head">
-      <div class="section-title">Holdings</div>
-      <div class="section-note">tap a row for the full deep dive</div>
+      <div class="section-title">หุ้นที่ถืออยู่</div>
+      <div class="section-note">แตะแถวเพื่อดูรายละเอียด</div>
     </div>
     <div class="panel">
       {HOLDINGS}
     </div>
   </section>
 
+  <!--
+  {DCA_PLAN}: flat .dca-stocks list, one .dca-stock per active ticker, sorted by % descending,
+  percentages summing to 100. No section headers or dividers between items. Pattern:
+  <div class="dca-stocks">
+    <div class="dca-stock">
+      <div class="dca-stock-head">
+        <span class="dca-stock-pct">27%</span>
+        <span class="dca-stock-ticker">VOO</span>
+      </div>
+      <div class="dca-stock-reason">...</div>
+    </div>
+  </div>
+  See ai-insight.md for how to size each % and write the reason — it's the part that most
+  needs judgment, not just markup.
+
+  {CASH_RESERVE_NOTE}: 1-2 <p> tags of Thai prose inside .dca-cash-note stating the estimated
+  standby cash (cash_reserve_estimate, ~20% of total invested) and a plain verdict on whether
+  now is a good time to deploy extra beyond the regular DCA amount.
+  -->
   <section>
     <div class="section-head">
-      <div class="section-title">Action items</div>
+      <div class="section-title">แผน DCA รอบหน้า</div>
+    </div>
+    <div class="panel dca-card">
+      {DCA_PLAN}
+    </div>
+    <div class="panel dca-cash-note">
+      {CASH_RESERVE_NOTE}
+    </div>
+  </section>
+
+  <!--
+  {ACTION_ITEMS}: 3-5 items, ordered by urgency/soonest catalyst first. Pattern:
+  <div class="action-item urgent">
+    <div class="action-num">1</div>
+    <div class="action-text"><strong>UNH รายงานผล 16 ก.ค.</strong> — ...</div>
+  </div>
+  Add class "urgent" only for items tied to a catalyst within ~7 days. Number .action-num
+  sequentially from 1. Each .action-text names the ticker in <strong>, states a concrete
+  action, and gives the reason, in simple Thai.
+  -->
+  <section>
+    <div class="section-head">
+      <div class="section-title">สิ่งที่ควรทำต่อไป</div>
     </div>
     <div class="panel action-list">
       {ACTION_ITEMS}

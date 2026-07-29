@@ -4,14 +4,16 @@ description: Analyze portfolio.json + prices.json and write comprehensive analys
 
 Analyze the user's portfolio and write a fresh `insights.html`.
 
+**Tone**: every piece of prose (market context, holding details, DCA reasons, action items) is simple, beginner-friendly Thai for a novice DCA investor — short sentences, no dense analyst jargon. Briefly explain any unavoidable English financial term on first use, e.g. "IRR (ผลตอบแทนเฉลี่ยต่อปี)". Tickers, company names, numbers, and dates stay as-is.
+
 ## Steps
 
 1. Read `portfolio.json` and `prices.json`.
 
-2. Use WebSearch to gather current context for each active holding and the broader market. Run these searches:
+2. Use WebSearch for context:
    - `"S&P 500 performance YTD 2026"` — benchmark comparison
    - `"US market macro outlook 2026"` — market context
-   - For each active ticker in the portfolio: `"{TICKER} stock news earnings 2026"` — one search per ticker (also gather each ticker's next confirmed/expected earnings date)
+   - `"{TICKER} stock news earnings 2026"` for each active ticker — also gather its next confirmed/expected earnings date
 
 3. Run this Python script via Bash to compute accurate position metrics:
 
@@ -83,83 +85,21 @@ print(json.dumps({
     'total_thb': round(total_thb, 2),
     'total_pnl': round(total_pnl, 2),
     'total_pnl_pct': round(total_pnl_pct, 1),
+    'cash_reserve_estimate': round(total_invested * 0.20, 2),
     'fetched_at': prices_data['fetched_at'],
 }, indent=2))
 ```
 
-4. Read `.claude/commands/ai-insight-template.html`. It's the static page shell — copy it as-is and only fill in the placeholders described below (each appears once in the shell, wrapped in `{CURLY_BRACES}`). Do not change the CSS or the surrounding markup.
+`cash_reserve_estimate` is a working assumption (the user keeps roughly 20% of invested capital as standby cash) — there's no real cash field in the data, so treat it as a number to reason with, not a tracked balance. Only positions with `adj_shares > 0` are active; a fully-exited ticker (e.g. one sold down to zero) must never appear in `{HOLDINGS}`, `{TIMELINE_ITEMS}`, or `{DCA_PLAN}`.
 
-**Simple placeholders (header):**
+4. Read `.claude/commands/ai-insight-template.html` and copy it as-is, filling only the `{PLACEHOLDER}` tokens. **The template has an HTML comment next to every placeholder showing its exact markup pattern and mechanical rules (sorting, class names, thresholds) — follow those precisely, then delete all instructional comments from your output**, so none of them leak into `insights.html`. The content judgment below goes beyond what those comments cover:
 
-- `{DATE}` — today's date, e.g. `July 14, 2026` (used in both `<title>` and the subdate line)
-- `{FETCHED_AT_TIME}` — time portion of `fetched_at` from prices.json, e.g. `14:51 UTC`
-- `{TOTAL_PNL_PCT}` — e.g. `+13.2%` (prefix `+` if positive)
-- `{BENCHMARK_YTD_PCT}` — S&P 500 YTD return from web search, e.g. `+9.8%`
-- `{PERF_PILL_CLASS}` — empty string if `total_pnl_pct` is positive, `neg` if negative (controls the pill's red/green styling)
-
-**`{STAT_CARDS}`** — exactly 4 `.stat-card` divs, in this order:
-1. Top performer — best `pnl_pct` position
-2. Biggest laggard — worst `pnl_pct` position (skip only if every position is positive; in that case use the smallest gainer instead)
-3. A concentration stat — e.g. combined weight of the largest holding(s) or asset class (ETFs vs single stocks)
-4. A thematic exposure stat — e.g. sector/theme weight (tech, healthcare, etc.) derived from what the holdings actually are
-
-Each card:
-```html
-<div class="stat-card">
-  <div class="stat-label">Top performer</div>
-  <div class="stat-value" style="color:var(--success)">UNH +48.6%</div>
-  <div class="stat-sub">reports in 2 days</div>
-</div>
-```
-Use `style="color:var(--success)"` for positive values and `style="color:var(--destructive)"` for negative ones on cards 1–2; cards 3–4 have no color override. `.stat-sub` is one short clause of context (earnings timing, cost basis, what makes up the weight, etc.).
-
-**Market context:**
-- `{MARKET_CONTEXT_SUMMARY}` — one line naming the dominant market narrative right now, e.g. `Market context — narrow AI-led rally, thin risk premium`
-- `{MARKET_CONTEXT_BODY}` — 2–3 `<p>` tags of macro prose (Fed policy, sector trends, earnings-season context, anything from web search relevant to these specific holdings)
-
-**`{TIMELINE_ITEMS}`** — one `.tl-item` per holding that has a known or estimated next earnings date, sorted chronologically (soonest first):
-```html
-<div class="tl-item">
-  <div class="tl-dot"></div>
-  <div class="tl-date">Jul 28</div>
-  <div class="tl-ticker">GOOGL</div>
-</div>
-```
-If a date falls on today ({DATE}), add `today` to the item's class (`<div class="tl-item today">`) — this is the signature red marker. Omit ETFs/positions with no single earnings print unless they have a notable related event.
-
-**`{HOLDINGS}`** — one `.holding` block per active position, sorted by `pnl_pct` descending:
-```html
-<div class="holding">
-  <details>
-    <summary class="holding-row">
-      <div><div class="ticker">UNH</div><div class="cost-basis">$54</div></div>
-      <div class="ret pos">▲ 48.6%</div>
-      <div class="badge yes">Thesis intact</div>
-      <div class="next-earn">Reports <strong>Jul 16</strong></div>
-      <span class="chev">▶</span>
-    </summary>
-    <div class="holding-detail">
-      <div class="detail-block"><h4>Earnings</h4><p>...</p></div>
-      <div class="detail-block"><h4>Price action</h4><p>...</p></div>
-      <div class="detail-block"><h4>News / sentiment</h4><p>...</p></div>
-      <div class="detail-block flag"><h4>Red flags</h4><p>...</p></div>
-    </div>
-  </details>
-</div>
-```
-- `cost-basis` is the rounded `avg_cost`, e.g. `$54`
-- `.ret` uses class `pos` + `▲` for positive `pnl_pct`, `neg` + `▼` for negative
-- `.badge` reflects overall thesis status: `yes` = "Thesis intact", `watch` = "Watch" (mixed signals, upcoming catalyst risk, early/small position), `no` = "Thesis broken" (use sparingly, only for a clear deterioration)
-- `.next-earn` shows the next confirmed/estimated earnings date (`Reports <strong>{date}</strong>`), or `No date set` / `Tracks index` / `Tracks holdings` for ETFs
-- The 4 `detail-block`s are always Earnings, Price action, News / sentiment, Red flags in that order — 1–2 sentences each, grounded in the web search results and the computed P&L numbers. Give the "Red flags" block `class="detail-block flag"`; write "None at this time" if there's genuinely nothing to flag.
-
-**`{ACTION_ITEMS}`** — 3–5 items, ordered by urgency/soonest catalyst first:
-```html
-<div class="action-item urgent">
-  <div class="action-num">1</div>
-  <div class="action-text"><strong>UNH reports Jul 16</strong> — hold through the print; Street wants $4.85 EPS after FY26 guidance was raised to >$18.25 EPS.</div>
-</div>
-```
-Add `urgent` to `action-item`'s class only for items tied to a catalyst within the next ~7 days; leave it off otherwise. Number `.action-num` sequentially starting at 1. Each `.action-text` names the ticker in `<strong>`, states a concrete action, and gives the reason.
+- **Stat cards, market context, holdings** — ground everything in the actual computed numbers and the web search results for these specific holdings; avoid generic commentary.
+- **`{DCA_PLAN}`** — the part that most needs care:
+  - This is a rebalancing-aware read of where the portfolio sits *today* (via each position's `allocation`), not a fixed monthly split. ETF weight staying near ~50% of the whole portfolio is the anchor; no single business theme should quietly become an oversized bet.
+  - **Judge real concentration yourself — don't take `prices.json`'s `sectors` field literally.** It's a rough label (e.g. GOOGL is tagged "Communication Services") and trusting it mechanically produces silly conclusions — GOOGL is very much an AI/tech-exposed business and belongs in the same mental bucket as VGT/MSFT/RBRK. Reason about what each holding actually *is and does*, like an informed investor would.
+  - Tickers with a strong, still-underweight thesis get a larger share of this round's money. Tickers that are already a large position, or sit in a theme the portfolio is already heavy in, get a smaller share — not a hard cap, just diminishing benefit from concentrating further. A weakening/broken thesis gets little, but not zero — staying consistent is the point of DCA.
+  - **Writing `.dca-stock-reason` is the highest-value part of this whole skill.** Write like a thoughtful long-term investor explaining a decision to themselves: is this ticker's own thesis intact or weakening, is the price attractive relative to cost, is there a near-term reason to lean in or hold back. Never write a formulaic "สัดส่วนตอนนี้ X% เพดาน Y%" line — if concentration genuinely drives the call for a specific ticker, say so once in plain investing language, not as a formula repeated everywhere. If a position is simply fine and unremarkable, say that briefly instead of inventing an angle.
+- **`{CASH_RESERVE_NOTE}`** — state the estimate (`cash_reserve_estimate`, ~20% of invested) and give a plain verdict on whether current conditions (market context + specific holdings) make now a good "จังหวะ" to deploy some of it beyond the regular DCA amount, or whether to just hold it and stay the course.
 
 5. Write the complete HTML to `insights.html`, overwriting any previous version.
