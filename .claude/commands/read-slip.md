@@ -30,4 +30,11 @@ Follow these steps exactly:
 
 5. Append only the new entries to the array and write the updated array back to portfolio.json using the Write tool. Preserve the existing entries exactly — only add to the end. Each entry must include: `ticker`, `type`, `shares`, `price`, `date`, `exchange`, `thb`, `fx_rate`, `thb_source`.
 
-6. Report a summary: total slips read, entries added, entries skipped as duplicates. For any `bot_rate` entries, note the FX rate used.
+6. If step 5 added at least one new entry, sync the private data repo so the cloud analysis routine sees the update:
+   ```bash
+   cp portfolio.json /Users/sutheerapitakpalin/Documents/sa/code/port-oreo-data/portfolio.json
+   cd /Users/sutheerapitakpalin/Documents/sa/code/port-oreo-data && git add portfolio.json && git commit -q -m "Update holdings" && git push -q
+   ```
+   Skip this step entirely if nothing new was added (all duplicates).
+
+7. Report a summary: total slips read, entries added, entries skipped as duplicates, and whether the private data repo was synced. For any `bot_rate` entries, note the FX rate used.

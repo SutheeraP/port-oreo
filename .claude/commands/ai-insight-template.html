@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Insights — {DATE}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --background: #fafafa;
+    --card: #ffffff;
+    --border: #e4e4e7;
+    --foreground: #18181b;
+    --muted: #f4f4f5;
+    --muted-foreground: #71717a;
+    --primary: #18181b;
+    --primary-foreground: #fafafa;
+    --success: #16a34a;
+    --success-bg: #f0fdf4;
+    --success-border: #bbf7d0;
+    --destructive: #dc2626;
+    --destructive-bg: #fef2f2;
+    --destructive-border: #fecaca;
+    --watch-bg: #fffbeb;
+    --watch-border: #fde68a;
+    --watch: #b45309;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    line-height: 1.5;
+    font-size: 14px;
+    padding: 2.5rem 1.5rem 4rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
+  .subdate { color: var(--muted-foreground); font-size: 0.8rem; margin-top: 0.15rem; }
+  .perf-pill {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: var(--success-bg); border: 1px solid var(--success-border);
+    color: var(--success); font-weight: 600; font-size: 0.8rem;
+    padding: 0.4rem 0.75rem; border-radius: 999px;
+  }
+  .perf-pill.neg { background: var(--destructive-bg); border-color: var(--destructive-border); color: var(--destructive); }
+  .perf-pill span.muted { color: var(--muted-foreground); font-weight: 500; }
+
+  /* ---------- Stat grid ---------- */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem;
+  }
+  .stat-label {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted-foreground); font-weight: 600; margin-bottom: 0.4rem;
+  }
+  .stat-value { font-size: 0.95rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat-sub { font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.15rem; }
+
+  /* ---------- Section shell ---------- */
+  section { margin-bottom: 1.5rem; }
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 0.6rem;
+  }
+  .section-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+  .section-note { font-size: 0.75rem; color: var(--muted-foreground); }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  /* ---------- Market context (collapsed by default) ---------- */
+  .context-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.9rem 1.1rem; cursor: pointer; list-style: none;
+    font-weight: 500; font-size: 0.85rem;
+  }
+  .context-toggle::-webkit-details-marker { display: none; }
+  .context-toggle .chev { color: var(--muted-foreground); transition: transform 0.15s ease; font-size: 0.7rem; }
+  details[open] .context-toggle .chev { transform: rotate(90deg); }
+  .context-body { padding: 0 1.1rem 1.1rem; color: var(--foreground); font-size: 0.85rem; }
+  .context-body p { margin-bottom: 0.7rem; color: #3f3f46; }
+  .context-body p:last-child { margin-bottom: 0; }
+
+  /* ---------- Timeline (signature element) ---------- */
+  .timeline-panel { padding: 1.25rem 1.1rem 1.4rem; }
+  .timeline {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.4rem;
+  }
+  .timeline::before {
+    content: ''; position: absolute; top: 6px; left: 4px; right: 4px; height: 2px;
+    background: var(--border);
+  }
+  .tl-item { position: relative; flex: 1; text-align: center; }
+  .tl-item:first-child { text-align: left; }
+  .tl-item:last-child { text-align: right; }
+  .tl-dot {
+    width: 13px; height: 13px; border-radius: 50%; background: var(--card);
+    border: 2px solid var(--primary); margin: 0 auto 0.55rem;
+    position: relative; z-index: 1;
+  }
+  .tl-item:first-child .tl-dot { margin-left: 0; }
+  .tl-item:last-child .tl-dot { margin-right: 0; margin-left: auto; }
+  .tl-item.today .tl-dot { background: var(--destructive); border-color: var(--destructive); }
+  .tl-date { font-size: 0.7rem; color: var(--muted-foreground); font-weight: 600; }
+  .tl-ticker { font-size: 0.85rem; font-weight: 700; margin-top: 0.1rem; }
+  .tl-item.today .tl-date { color: var(--destructive); }
+
+  /* ---------- Holdings ---------- */
+  .holding {
+    border-bottom: 1px solid var(--border);
+  }
+  .holding:last-child { border-bottom: none; }
+
+  .holding-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 100px 130px 24px;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .holding-row::-webkit-details-marker { display: none; }
+  .holding-row:hover { background: var(--muted); }
+
+  .ticker { font-weight: 700; font-size: 0.9rem; }
+  .cost-basis { font-size: 0.72rem; color: var(--muted-foreground); margin-top: 0.1rem; }
+
+  .ret {
+    font-weight: 600; font-variant-numeric: tabular-nums; font-size: 0.85rem;
+    display: flex; align-items: center; gap: 0.3rem;
+  }
+  .ret.pos { color: var(--success); }
+  .ret.neg { color: var(--destructive); }
+
+  .badge {
+    font-size: 0.68rem; font-weight: 600; padding: 0.22rem 0.55rem;
+    border-radius: 999px; text-align: center; width: fit-content;
+    justify-self: start;
+  }
+  .badge.yes { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+  .badge.watch { background: var(--watch-bg); color: var(--watch); border: 1px solid var(--watch-border); }
+  .badge.no { background: var(--destructive-bg); color: var(--destructive); border: 1px solid var(--destructive-border); }
+
+  .next-earn { font-size: 0.75rem; color: var(--muted-foreground); text-align: right; }
+  .next-earn strong { color: var(--foreground); font-weight: 600; }
+
+  .chev { color: var(--muted-foreground); font-size: 0.7rem; transition: transform 0.15s ease; justify-self: end; }
+  details[open] .chev { transform: rotate(90deg); }
+
+  .holding-detail {
+    padding: 0 1.1rem 1.1rem 1.1rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem 1.5rem;
+  }
+  .detail-block h4 {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--muted-foreground); font-weight: 600; margin-bottom: 0.3rem;
+  }
+  .detail-block p { font-size: 0.82rem; color: #3f3f46; line-height: 1.55; }
+  .detail-block.flag p { color: var(--destructive); }
+
+  /* ---------- Action items ---------- */
+  .action-list { display: flex; flex-direction: column; }
+  .action-item {
+    display: flex; gap: 0.75rem; align-items: flex-start;
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .action-item:last-child { border-bottom: none; }
+  .action-num {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--muted); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; color: var(--muted-foreground);
+    margin-top: 0.1rem;
+  }
+  .action-item.urgent .action-num { background: var(--destructive-bg); border-color: var(--destructive-border); color: var(--destructive); }
+  .action-text { font-size: 0.84rem; color: #3f3f46; }
+  .action-text strong { color: var(--foreground); }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 640px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .holding-row { grid-template-columns: 70px 1fr 24px; }
+    .holding-row .badge, .holding-row .next-earn { display: none; }
+    .holding-detail { grid-template-columns: 1fr; }
+    .timeline { flex-wrap: wrap; gap: 1rem; }
+    .timeline::before { display: none; }
+    .tl-item { text-align: left !important; flex: none; width: 45%; }
+    .tl-item .tl-dot { margin-left: 0 !important; }
+  }
+
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Portfolio AI Insights</h1>
+      <div class="subdate">{DATE} · prices as of {FETCHED_AT_TIME}</div>
+    </div>
+    <div class="perf-pill {PERF_PILL_CLASS}">{TOTAL_PNL_PCT} since inception <span class="muted">· vs S&P 500 {BENCHMARK_YTD_PCT} YTD</span></div>
+  </header>
+
+  <div class="stat-grid">
+    {STAT_CARDS}
+  </div>
+
+  <section>
+    <details class="panel">
+      <summary class="context-toggle">
+        {MARKET_CONTEXT_SUMMARY}
+        <span class="chev">▶</span>
+      </summary>
+      <div class="context-body">
+        {MARKET_CONTEXT_BODY}
+      </div>
+    </details>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div class="section-title">Upcoming catalysts</div>
+    </div>
+    <div class="panel timeline-panel">
+      <div class="timeline">
+        {TIMELINE_ITEMS}
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div class="section-title">Holdings</div>
+      <div class="section-note">tap a row for the full deep dive</div>
+    </div>
+    <div class="panel">
+      {HOLDINGS}
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div class="section-title">Action items</div>
+    </div>
+    <div class="panel action-list">
+      {ACTION_ITEMS}
+    </div>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    function resize() {
+      var height = document.documentElement.scrollHeight;
+      if (window.frameElement) {
+        window.frameElement.style.height = height + 'px';
+      }
+    }
+    window.addEventListener('load', resize);
+    document.addEventListener('toggle', resize, true);
+    new ResizeObserver(resize).observe(document.body);
+  })();
+</script>
+</body>
+</html>

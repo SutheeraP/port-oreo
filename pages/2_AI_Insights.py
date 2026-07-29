@@ -7,9 +7,7 @@ st.set_page_config(page_title="AI Insights", page_icon="🤖", layout="wide")
 
 INSIGHTS = Path("insights.html")
 
-st.subheader("AI Insights")
-
 if INSIGHTS.exists():
-    components.html(INSIGHTS.read_text(), height=700, scrolling=True)
+    components.html(INSIGHTS.read_text(), height=400, scrolling=False)
 else:
     st.info("No insights yet. Ask Claude to analyze `portfolio.json` + `prices.json` and write to `insights.html`.")

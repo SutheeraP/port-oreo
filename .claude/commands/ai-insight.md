@@ -10,8 +10,8 @@ Analyze the user's portfolio and write a fresh `insights.html`.
 
 2. Use WebSearch to gather current context for each active holding and the broader market. Run these searches:
    - `"S&P 500 performance YTD 2026"` — benchmark comparison
-   - `"US market macro outlook 2026"` — Current Situation context
-   - For each active ticker in the portfolio: `"{TICKER} stock news earnings 2026"` — one search per ticker
+   - `"US market macro outlook 2026"` — market context
+   - For each active ticker in the portfolio: `"{TICKER} stock news earnings 2026"` — one search per ticker (also gather each ticker's next confirmed/expected earnings date)
 
 3. Run this Python script via Bash to compute accurate position metrics:
 
@@ -87,119 +87,79 @@ print(json.dumps({
 }, indent=2))
 ```
 
-4. Use the computed numbers and web search results to write `insights.html` with **today's date** in the title. Use this HTML structure as your template — fill in all placeholder values with real, substantive analysis:
+4. Read `.claude/commands/ai-insight-template.html`. It's the static page shell — copy it as-is and only fill in the placeholders described below (each appears once in the shell, wrapped in `{CURLY_BRACES}`). Do not change the CSS or the surrounding markup.
 
+**Simple placeholders (header):**
+
+- `{DATE}` — today's date, e.g. `July 14, 2026` (used in both `<title>` and the subdate line)
+- `{FETCHED_AT_TIME}` — time portion of `fetched_at` from prices.json, e.g. `14:51 UTC`
+- `{TOTAL_PNL_PCT}` — e.g. `+13.2%` (prefix `+` if positive)
+- `{BENCHMARK_YTD_PCT}` — S&P 500 YTD return from web search, e.g. `+9.8%`
+- `{PERF_PILL_CLASS}` — empty string if `total_pnl_pct` is positive, `neg` if negative (controls the pill's red/green styling)
+
+**`{STAT_CARDS}`** — exactly 4 `.stat-card` divs, in this order:
+1. Top performer — best `pnl_pct` position
+2. Biggest laggard — worst `pnl_pct` position (skip only if every position is positive; in that case use the smallest gainer instead)
+3. A concentration stat — e.g. combined weight of the largest holding(s) or asset class (ETFs vs single stocks)
+4. A thematic exposure stat — e.g. sector/theme weight (tech, healthcare, etc.) derived from what the holdings actually are
+
+Each card:
 ```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portfolio Insights — {DATE}</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; color: #e2e8f0; padding: 1rem 0 2rem; line-height: 1.7; font-weight: 300; }
-  h1 { font-size: 1.4rem; color: #615fff; margin-bottom: 0.2rem; font-weight: 400; }
-  .date { color: #314158; font-size: 0.8rem; margin-bottom: 2.5rem; }
-  h2 { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #314158; margin-bottom: 1rem; }
-  .card { border-top: 1px solid #314158; padding: 1.5rem 0; margin-bottom: 0; }
-  .commentary { font-size: 0.9rem; color: #e2e8f0; line-height: 1.8; }
-  .commentary p { margin-bottom: 0.75rem; }
-  .commentary p:last-child { margin-bottom: 0; }
-  .stock-block { margin-bottom: 1.4rem; padding-bottom: 1.4rem; border-bottom: 1px solid #314158; }
-  .stock-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-  .position-label { font-weight: 400; color: #615fff; font-size: 0.95rem; margin-bottom: 0.6rem; letter-spacing: 0.01em; }
-  .pos { color: #4ade80; font-weight: 600; }
-  .neg { color: #f87171; font-weight: 600; }
-  ul { padding-left: 0; list-style: none; }
-  ul li { color: #e2e8f0; font-size: 0.875rem; margin-bottom: 0.5rem; line-height: 1.7; padding-left: 0.75rem; border-left: 2px solid #314158; }
-  .steps ol { padding-left: 0; list-style: none; counter-reset: action-counter; }
-  .steps ol li { color: #e2e8f0; font-size: 0.875rem; margin-bottom: 0.75rem; line-height: 1.7; padding-left: 1.5rem; position: relative; counter-increment: action-counter; }
-  .steps ol li::before { content: counter(action-counter); position: absolute; left: 0; color: #615fff; font-weight: 600; font-size: 0.8rem; }
-  .snapshot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; }
-  .snapshot-item { background: #162030; border-radius: 6px; padding: 1rem; border: 1px solid #314158; }
-  .snapshot-label { font-size: 0.65rem; color: #314158; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; font-weight: 600; }
-  .snapshot-value { font-size: 0.875rem; color: #e2e8f0; line-height: 1.5; }
-  code { background: #162030; color: #615fff; padding: 1px 5px; border-radius: 3px; font-family: monospace; }
-</style>
-</head>
-<body>
-
-<h1>Portfolio AI Insights</h1>
-<div class="date">{DATE}</div>
-
-<div class="card">
-  <h2>Current Situation</h2>
-  <div class="commentary">
-    {CURRENT_SITUATION}
-  </div>
-</div>
-
-<div class="card">
-  <h2>Individual Stock Deep Dive</h2>
-  {STOCK_BLOCKS}
-</div>
-
-<div class="card steps">
-  <h2>Action Items</h2>
-  <ol>
-    {ACTION_ITEMS}
-  </ol>
-</div>
-
-<div class="card">
-  <h2>Portfolio Snapshot</h2>
-  <div class="snapshot-grid">
-    <div class="snapshot-item">
-      <div class="snapshot-label">vs Benchmark</div>
-      <div class="snapshot-value">{PORTFOLIO_VS_BENCHMARK}</div>
-    </div>
-    <div class="snapshot-item">
-      <div class="snapshot-label">Top Performers</div>
-      <div class="snapshot-value">{TOP_PERFORMERS}</div>
-    </div>
-    <div class="snapshot-item">
-      <div class="snapshot-label">Laggards</div>
-      <div class="snapshot-value">{WORST_PERFORMERS}</div>
-    </div>
-    <div class="snapshot-item">
-      <div class="snapshot-label">Concentration Risk</div>
-      <div class="snapshot-value">{CONCENTRATION_NOTE}</div>
-    </div>
-  </div>
-</div>
-
-</body>
-</html>
-```
-
-**Filling in placeholders:**
-
-- `{DATE}` — today's date (e.g. "June 10, 2026")
-- `{FETCHED_AT}` — timestamp from prices.json
-
-- `{CURRENT_SITUATION}` — 3–5 sentences of prose covering: what is happening in the broader market or macro environment right now that is relevant to these holdings. Mention any notable sector trends, economic events, Fed policy, geopolitical factors, or earnings season context. Draw on web search results.
-
-- `{STOCK_BLOCKS}` — one `.stock-block` div per active holding, sorted by P&L % descending. Each block:
-```html
-<div class="stock-block">
-  <div class="position-label">TICKER &nbsp;<span class="pos|neg">+X.X% · $X,XXX</span></div>
-  <ul>
-    <li><strong>Earnings:</strong> [recent results or next expected date and what to watch for]</li>
-    <li><strong>Price action:</strong> [is it near a key level, breaking out, consolidating, or breaking down?]</li>
-    <li><strong>News / sentiment:</strong> [any analyst upgrades/downgrades, notable news, sentiment shift]</li>
-    <li><strong>Thesis intact?</strong> [yes/no/watch — brief reason]</li>
-    <li><strong>Red flags:</strong> [any concerns, or "None at this time"]</li>
-  </ul>
+<div class="stat-card">
+  <div class="stat-label">Top performer</div>
+  <div class="stat-value" style="color:var(--success)">UNH +48.6%</div>
+  <div class="stat-sub">reports in 2 days</div>
 </div>
 ```
-Use `class="pos"` on the span for positive P&L, `class="neg"` for negative. Prefix positive P&L with `+`.
+Use `style="color:var(--success)"` for positive values and `style="color:var(--destructive)"` for negative ones on cards 1–2; cards 3–4 have no color override. `.stat-sub` is one short clause of context (earnings timing, cost basis, what makes up the weight, etc.).
 
-- `{ACTION_ITEMS}` — 3–5 `<li>` items with concrete, specific actions: which ticker, what to do, and why. Flag urgency where relevant (e.g. "Before next earnings on X date…").
+**Market context:**
+- `{MARKET_CONTEXT_SUMMARY}` — one line naming the dominant market narrative right now, e.g. `Market context — narrow AI-led rally, thin risk premium`
+- `{MARKET_CONTEXT_BODY}` — 2–3 `<p>` tags of macro prose (Fed policy, sector trends, earnings-season context, anything from web search relevant to these specific holdings)
 
-- `{PORTFOLIO_VS_BENCHMARK}` — one-line comparison, e.g. "Portfolio +12.3% vs S&P 500 +8.1% YTD — outperforming by ~4.2 pp"
-- `{TOP_PERFORMERS}` — inline list of top 2–3 winners with their P&L %, e.g. "UNH +43.2%, VGT +19.7%"
-- `{WORST_PERFORMERS}` — inline list of bottom 2–3 laggards with their P&L %, e.g. "KTOS −32.2%, MSFT −0.1%"
-- `{CONCENTRATION_NOTE}` — one sentence flagging any sector or single-name concentration worth noting, e.g. "Tech exposure (VGT + GOOGL + MSFT + DDOG) is ~65% of portfolio"
+**`{TIMELINE_ITEMS}`** — one `.tl-item` per holding that has a known or estimated next earnings date, sorted chronologically (soonest first):
+```html
+<div class="tl-item">
+  <div class="tl-dot"></div>
+  <div class="tl-date">Jul 28</div>
+  <div class="tl-ticker">GOOGL</div>
+</div>
+```
+If a date falls on today ({DATE}), add `today` to the item's class (`<div class="tl-item today">`) — this is the signature red marker. Omit ETFs/positions with no single earnings print unless they have a notable related event.
+
+**`{HOLDINGS}`** — one `.holding` block per active position, sorted by `pnl_pct` descending:
+```html
+<div class="holding">
+  <details>
+    <summary class="holding-row">
+      <div><div class="ticker">UNH</div><div class="cost-basis">$54</div></div>
+      <div class="ret pos">▲ 48.6%</div>
+      <div class="badge yes">Thesis intact</div>
+      <div class="next-earn">Reports <strong>Jul 16</strong></div>
+      <span class="chev">▶</span>
+    </summary>
+    <div class="holding-detail">
+      <div class="detail-block"><h4>Earnings</h4><p>...</p></div>
+      <div class="detail-block"><h4>Price action</h4><p>...</p></div>
+      <div class="detail-block"><h4>News / sentiment</h4><p>...</p></div>
+      <div class="detail-block flag"><h4>Red flags</h4><p>...</p></div>
+    </div>
+  </details>
+</div>
+```
+- `cost-basis` is the rounded `avg_cost`, e.g. `$54`
+- `.ret` uses class `pos` + `▲` for positive `pnl_pct`, `neg` + `▼` for negative
+- `.badge` reflects overall thesis status: `yes` = "Thesis intact", `watch` = "Watch" (mixed signals, upcoming catalyst risk, early/small position), `no` = "Thesis broken" (use sparingly, only for a clear deterioration)
+- `.next-earn` shows the next confirmed/estimated earnings date (`Reports <strong>{date}</strong>`), or `No date set` / `Tracks index` / `Tracks holdings` for ETFs
+- The 4 `detail-block`s are always Earnings, Price action, News / sentiment, Red flags in that order — 1–2 sentences each, grounded in the web search results and the computed P&L numbers. Give the "Red flags" block `class="detail-block flag"`; write "None at this time" if there's genuinely nothing to flag.
+
+**`{ACTION_ITEMS}`** — 3–5 items, ordered by urgency/soonest catalyst first:
+```html
+<div class="action-item urgent">
+  <div class="action-num">1</div>
+  <div class="action-text"><strong>UNH reports Jul 16</strong> — hold through the print; Street wants $4.85 EPS after FY26 guidance was raised to >$18.25 EPS.</div>
+</div>
+```
+Add `urgent` to `action-item`'s class only for items tied to a catalyst within the next ~7 days; leave it off otherwise. Number `.action-num` sequentially starting at 1. Each `.action-text` names the ticker in `<strong>`, states a concrete action, and gives the reason.
 
 5. Write the complete HTML to `insights.html`, overwriting any previous version.
