@@ -6,3 +6,4 @@ insights.md
 investigate/
 todo.md
 scripts/*
+.streamlit/secrets.toml

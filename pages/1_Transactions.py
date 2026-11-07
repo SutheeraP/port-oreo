@@ -1,21 +1,13 @@
-import json
-from pathlib import Path
-
 import pandas as pd
 import streamlit as st
 
+from data_source import require_portfolio
+
 st.set_page_config(page_title="Transactions", page_icon="📋", layout="wide")
 
-_ROOT = Path(__file__).parent.parent
-PORTFOLIO = _ROOT / "portfolio.json"
-PORTFOLIO_SAMPLE = _ROOT / "portfolio.sample.json"
 
-
-@st.cache_data(ttl=300)
 def load_transactions() -> pd.DataFrame:
-    portfolio_path = PORTFOLIO if PORTFOLIO.exists() else PORTFOLIO_SAMPLE
-    raw = json.loads(portfolio_path.read_text())
-    df = pd.DataFrame(raw)
+    df = pd.DataFrame(require_portfolio())
     df["type"] = df.get("type", pd.Series(["buy"] * len(df))).fillna("buy")
     df["shares"] = df["shares"].astype(float)
     df["price"] = df["price"].astype(float)

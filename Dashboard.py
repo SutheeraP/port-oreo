@@ -1,7 +1,6 @@
 import json
 import numpy as np
 from datetime import date as date_type, datetime, timedelta, timezone
-from pathlib import Path
 from perf_engine import (
     build_master_history,
     build_holdings,
@@ -10,6 +9,7 @@ from perf_engine import (
     tx_split_factor,
 )
 
+from data_source import require_portfolio
 import fetch_prices
 import pandas as pd
 import plotly.graph_objects as go
@@ -17,27 +17,23 @@ import streamlit as st
 
 st.set_page_config(page_title="Portfolio", page_icon="📈", layout="wide")
 
-PORTFOLIO = Path("portfolio.json")
-PRICES    = Path("prices.json")
+PRICE_WARNING_MINUTES = 60
 
 TICKER_PALETTE = ["#00d4a0", "#ff6b35", "#7c3aed", "#3b82f6", "#f59e0b", "#ec4899", "#06b6d4", "#84cc16"]
 
 
-PORTFOLIO_SAMPLE = Path("portfolio.sample.json")
-
 @st.cache_data(ttl=300)
-def load_data():
-    portfolio_path = PORTFOLIO if PORTFOLIO.exists() else PORTFOLIO_SAMPLE
-    if not PRICES.exists():
-        fetch_prices.main()
-    portfolio  = json.loads(portfolio_path.read_text())
-    prices_raw = json.loads(PRICES.read_text())
-    return portfolio, prices_raw
+def load_prices(portfolio_json: str) -> dict:
+    portfolio = json.loads(portfolio_json)
+    if fetch_prices.is_stale(fetch_prices.read_prices(), fetch_prices.get_tickers(portfolio)):
+        fetch_prices.main(portfolio)
+    return fetch_prices.read_prices() or {}
 
 
 # ── load ──────────────────────────────────────────────────────────────────────
-portfolio_data, prices_raw = load_data()
-prices        = prices_raw["prices"]
+portfolio_data = require_portfolio()
+prices_raw    = load_prices(json.dumps(portfolio_data))
+prices        = prices_raw.get("prices", {})
 split_history = prices_raw.get("split_history", {})
 sectors       = prices_raw.get("sectors", {})
 fetched_at    = prices_raw.get("fetched_at", "")
@@ -47,11 +43,12 @@ total_cost    = df["Cost"].sum()
 total_value   = df["Value"].dropna().sum()
 total_pnl     = total_value - total_cost
 total_pnl_pct = total_pnl / total_cost * 100 if total_cost else 0
-best_row      = df[df["P&L %"].notna()].sort_values("P&L %", ascending=False).iloc[0]
+priced_rows   = df[df["P&L %"].notna()].sort_values("P&L %", ascending=False)
+best_row      = priced_rows.iloc[0] if not priced_rows.empty else None
 tax_summary   = compute_tax_summary(portfolio_data)
 
 try:
-    time_str = datetime.fromisoformat(fetched_at).astimezone(timezone.utc).strftime("%I:%M %p UTC")
+    time_str = datetime.fromisoformat(fetched_at).astimezone(timezone.utc).strftime("%d %b %Y, %I:%M %p UTC")
 except Exception:
     time_str = fetched_at
 
@@ -66,17 +63,25 @@ with b_col:
     if st.button("↻ Refresh", width="stretch"):
         with st.spinner("Fetching…"):
             try:
-                fetch_prices.main()
+                fetch_prices.main(portfolio_data)
                 st.cache_data.clear()
                 st.rerun()
             except Exception as e:
                 st.error(str(e))
 
+if n_prices == 0:
+    st.error("No prices are available right now. Tap Refresh to try again.")
+    st.stop()
+
+if fetch_prices.is_stale(prices_raw, fetch_prices.get_tickers(portfolio_data), PRICE_WARNING_MINUTES):
+    st.warning(f"Prices couldn't be updated. Showing prices from {time_str}.")
+
 # ── metrics ───────────────────────────────────────────────────────────────────
 c1, c2, c3 = st.columns(3)
 c1.metric("Total Value", f"${total_value:,.2f}", border=True, height="stretch")
 c2.metric("Invested",    f"${total_cost:,.2f}", border=True, height="stretch")
-c3.metric("Positions",  len(df), f"best: {best_row['Ticker']} {best_row['P&L %']:+.1f}%", border=True, height="stretch")
+best_label = f"best: {best_row['Ticker']} {best_row['P&L %']:+.1f}%" if best_row is not None else None
+c3.metric("Positions",  len(df), best_label, border=True, height="stretch")
 
 c4, c5 = st.columns(2)
 c4.metric("Total P&L",  f"${total_pnl:+,.2f}", f"{total_pnl_pct:+.2f}%", border=True, height="stretch")
